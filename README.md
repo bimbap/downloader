@@ -10,7 +10,7 @@ An ultra-fast, zero-lag interactive Terminal UI for downloading, converting, and
 - 📐 **Dynamic Viewport Pagination**: Sliding-window pagination automatically adapts to any terminal height, preventing vertical scroll overflow and eliminating duplicate header spam.
 - 📋 **True Playlist Intelligence**: Resolves genuine playlist titles, video counts, and item previews (e.g. `Playlist Name: ... (3 Videos)` with itemized listing), with instant in-memory caching for zero-latency backtracking.
 - 📊 **Multi-Stream ANSI Progress**: Cleanly separates Video and Audio stream downloads with distinct progress bars, dynamic `MB/s` speed formatting, and zero noisy raw stdout spam (`noprogress: True`).
-- 🔍 **Smart Upscale Engine**: Native support for upscaling lower-resolution sources to 1440p (2K), 2160p (4K), and 4320p (8K) via FFmpeg's high-precision Lanczos filter (`scale=-2:H:flags=lanczos`).
+- 🔍 **Hardware-Accelerated Upscale Engine**: Native support for upscaling lower-resolution sources to 1440p (2K), 2160p (4K), and 4320p (8K) via GPU acceleration (NVIDIA NVENC, Intel QSV, AMD AMF) or optimized CPU Bicubic scaling with real-time streaming progress bars and ETA.
 - 🎵 **Comprehensive Audio Transcoding**: Convert to MP3 (up to 320 kbps), M4A (AAC), Opus, WAV (lossless PCM), or preserve the original best audio stream.
 - 🎬 **Granular Video Settings**: Select target resolutions (144p to 8K), video codecs (`h264`, `av1`, `vp9`, `auto`), and containers (`mp4`, `webm`, `mkv`, `auto`).
 - 🏷️ **Custom Filename Styles**: Choose between `basic`, `pretty`, `nerdy`, and `classic` naming conventions.
@@ -148,7 +148,7 @@ Centralized settings management with dedicated submenus:
   - **Target Resolution**: `4320p` (8K), `2160p` (4K), `1440p` (2K), `1080p`, `720p`, `480p`, `360p`, `240p`, `144p`.
   - **Preferred Codec**: `h264 + aac` (Universal max 1080p), `av1 + opus` (High-efficiency 8K/HDR), `vp9 + opus` (Web standard), `auto`.
   - **File Container**: `auto` (mp4 for h264, webm for vp9/av1), `mp4`, `webm`, `mkv`.
-  - **Force Upscale (Lanczos)**: Toggle `ON/OFF`. If the native YouTube video resolution is lower than your target resolution (e.g., requesting 1440p on a 1080p source), FFmpeg automatically upscales the video using the Lanczos scaling filter.
+  - **Force Upscale (GPU / Bicubic)**: Toggle `ON/OFF`. If the native YouTube video resolution is lower than your target resolution (e.g., requesting 1440p on a 1080p source), the engine automatically upscales the video using hardware-accelerated Bicubic scaling (`h264_nvenc` / CPU fallback) with live real-time progress, speed, and ETA feedback.
 - **🎵 Audio Settings**:
   - **Active Format**: `mp3`, `m4a`, `opus`, `wav`, `best`.
   - **Target Bitrate**: `320k`, `256k`, `192k`, `128k`, `96k`.
@@ -191,7 +191,7 @@ run.bat "<URL>" [OPTIONS]
 # 2. Download 1080p MP4 with h264 codec
 ./yt.sh "https://youtu.be/dQw4w9WgXcQ" -r 1080 -c h264 --container mp4
 
-# 3. Download and upscale to 1440p (2K) via Lanczos filter
+# 3. Download and upscale to 1440p (2K) via GPU/Bicubic engine
 ./yt.sh "https://youtu.be/dQw4w9WgXcQ" -r 1440 -u
 
 # 4. Extract audio as 320 kbps MP3
@@ -214,7 +214,7 @@ run.bat "<URL>" [OPTIONS]
 | | `--container` | `auto`, `mp4`, `webm`, `mkv` | Video container encapsulation |
 | `-s` | `--style` | `basic`, `pretty`, `nerdy`, `classic` | Filename naming style |
 | `-b` | `--bitrate` | `320`, `256`, `192`, `128`, `96` | Audio bitrate in kbps |
-| `-u` | `--force-upscale` | *(Flag)* | Enable FFmpeg Lanczos upscale if native < target |
+| `-u` | `--force-upscale` | *(Flag)* | Enable GPU/FFmpeg Bicubic upscale if native < target |
 | | `--no-force-upscale` | *(Flag)* | Disable upscale (native stream only) |
 | `-o` | `--output` | `<path>` | Custom output directory path |
 | `-p` | `--playlist` | *(Flag)* | Download entire playlist |
@@ -250,8 +250,8 @@ Settings modified via the TUI are persistently stored in `config/config.json`:
    max_visible = min(8, max(3, term_rows - header_count - 3))
    ```
    Combined with a strict `term_rows - 1` output guard, the screen never triggers vertical scrolling, completely preventing ANSI header duplication.
-2. **Safe Atomic Upscaling**:
-   FFmpeg Lanczos upscaling encodes to a hidden file (`.temp_upscale_<name>`) and renames it atomically upon completion. If an upscale process is interrupted, the original downloaded file remains unharmed.
+2. **Safe Atomic GPU Upscaling**:
+   Hardware-accelerated Bicubic upscaling encodes to a hidden file (`.temp_upscale_<name>`) with live percentage/ETA progress and renames it atomically upon completion. If an upscale process is interrupted, the original downloaded file remains unharmed.
 3. **Cross-Platform Path Resolution**:
    Relative and absolute download paths are normalized safely across Windows (`M:\...`), POSIX (`/home/...`), and Git Bash (`/m/...`).
 

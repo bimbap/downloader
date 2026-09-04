@@ -485,7 +485,7 @@ def progress_hook(d):
             if is_video_stream:
                 print(f"\n    {BOLD_GREEN}✔ Video stream downloaded.{NC}")
             else:
-                print(f"\n    {BOLD_YELLOW}⚙ Merging & processing with FFmpeg...{NC}")
+                print(f"\n    {BOLD_YELLOW}⚙ Merging streams with FFmpeg...{NC}")
     except Exception:
         pass
 
@@ -1342,11 +1342,11 @@ def handle_video_settings_menu():
         force_upscale = cfg.get("force_upscale", False)
         eff_container = resolve_video_container(current_codec, current_container)
         codec_desc = "H.264 + AAC" if current_codec == "h264" else ("AV1 + Opus" if current_codec == "av1" else ("VP9 + Opus" if current_codec == "vp9" else "Auto"))
-        upscale_disp = f"{BOLD_YELLOW}ON (FFmpeg lanczos){NC}" if force_upscale else f"{DIM}OFF (Native Only){NC}"
+        upscale_disp = f"{BOLD_YELLOW}ON (GPU/Bicubic){NC}" if force_upscale else f"{DIM}OFF (Native Only){NC}"
 
         header = [
             f"Quality: {BOLD_GREEN}{current_res}p{NC}  |  Codec: {BOLD_CYAN}{current_codec.upper()}{NC} ({codec_desc})  |  Container: {BOLD_YELLOW}.{eff_container}{NC}",
-            f"Upscale: {BOLD_YELLOW if force_upscale else DIM}{'ON (FFmpeg)' if force_upscale else 'OFF'}{NC}  |  {DIM}Auto upscale lower streams to target resolution via FFmpeg{NC}"
+            f"Upscale: {BOLD_YELLOW if force_upscale else DIM}{'ON (Bicubic)' if force_upscale else 'OFF'}{NC}  |  {DIM}Auto upscale lower streams to target resolution via GPU/FFmpeg{NC}"
         ]
 
         options = [
