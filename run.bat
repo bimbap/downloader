@@ -1,4 +1,3 @@
-:; export PYTHONIOENCODING=utf-8; SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"; [ -t 0 ] && command -v winpty >/dev/null 2>&1 && PY="winpty python" || PY="python"; if ! $PY -c "import yt_dlp, imageio_ffmpeg" >/dev/null 2>&1; then echo -e "\033[1;33m[!] First-time setup: Missing dependencies detected.\033[0m"; echo -e "\033[1;36m[*] Installing requirements from requirements.txt...\033[0m"; $PY -m pip install -r "$SCRIPT_DIR/requirements.txt"; fi; if [ "$#" -eq 0 ]; then $PY "$SCRIPT_DIR/src/tui.py"; else $PY "$SCRIPT_DIR/src/downloader.py" "$@"; fi; exit $?
 @echo off
 setlocal
 set PYTHONIOENCODING=utf-8

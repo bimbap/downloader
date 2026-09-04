@@ -59,8 +59,60 @@ BOLD = "\033[1m"
 NC = "\033[0m"
 CLEAR_LINE = "\033[K"
 
-if os.name == 'nt':
-    os.system('')  # Enable VT100 ANSI mode on Windows console
+
+def set_quick_edit_mode(enabled: bool):
+    """Enable or disable QuickEdit mode on Windows console to prevent clicks from freezing execution or wiping clipboard."""
+    if os.name != 'nt':
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        hIn = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+        in_mode = ctypes.c_ulong()
+        if kernel32.GetConsoleMode(hIn, ctypes.byref(in_mode)):
+            if enabled:
+                new_mode = in_mode.value | 0x0040 | 0x0080  # ENABLE_QUICK_EDIT_MODE | ENABLE_EXTENDED_FLAGS
+            else:
+                new_mode = (in_mode.value & ~0x0040) | 0x0080  # Disable QuickEdit
+            kernel32.SetConsoleMode(hIn, new_mode)
+    except Exception:
+        pass
+
+
+def configure_windows_console():
+    """Enable VT100 ANSI mode and disable QuickEdit to prevent freeze / clipboard wipe."""
+    if os.name != 'nt':
+        return
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        hOut = kernel32.GetStdHandle(-11)
+        out_mode = ctypes.c_ulong()
+        if kernel32.GetConsoleMode(hOut, ctypes.byref(out_mode)):
+            kernel32.SetConsoleMode(hOut, out_mode.value | 0x0004 | 0x0008)
+    except Exception:
+        pass
+    try:
+        os.system('')
+    except Exception:
+        pass
+    set_quick_edit_mode(False)
+
+
+configure_windows_console()
+
+
+def safe_input(prompt_text: str = "") -> str:
+    """Safely prompt for input, re-enabling cursor and QuickEdit (for pasting) during prompt."""
+    set_quick_edit_mode(True)
+    sys.stdout.write("\033[?25h")
+    sys.stdout.flush()
+    try:
+        return input(prompt_text)
+    finally:
+        set_quick_edit_mode(False)
+        sys.stdout.write("\033[?25l")
+        sys.stdout.flush()
 
 try:
     import yt_dlp
@@ -739,8 +791,7 @@ def prompt_download_flow():
             print(f"  {DIM}Please enter a genuine YouTube video, shorts, or playlist URL.{NC}\n")
             err_msg = ""
 
-        raw_url = input(f"  {BOLD_CYAN}URL ➔  {NC}").strip()
-        sys.stdout.write("\033[?25l")
+        raw_url = safe_input(f"  {BOLD_CYAN}URL ➔  {NC}").strip()
         if not raw_url or raw_url.lower() in ("q", "quit", "cancel", "back"):
             return
 
@@ -979,19 +1030,15 @@ def handle_delete_menu():
                 print(f"{BOLD_YELLOW}Downloads Folder is Empty{NC}")
                 print(f"{BOLD_CYAN}============================================================{NC}\n")
                 print("  No downloaded files to delete.\n")
-                sys.stdout.write("\033[?25h")
-                input("Press Enter to continue...")
-                sys.stdout.write("\033[?25l")
+                safe_input("Press Enter to continue...")
                 continue
 
             clear_screen()
-            sys.stdout.write("\033[?25h")
             print(f"{BOLD_CYAN}============================================================{NC}")
             print(f"{BOLD_RED}Delete All Files in Downloads Folder{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
             print(f"  Are you sure you want to delete {BOLD_RED}{len(files)} files{NC} ({total_size_mb:.1f} MB)?\n")
-            ans = input("  Confirm deletion? (y/N): ").strip().lower()
-            sys.stdout.write("\033[?25l")
+            ans = safe_input("  Confirm deletion? (y/N): ").strip().lower()
             if ans == "y":
                 del_count = 0
                 for f in files:
@@ -1023,9 +1070,7 @@ def handle_delete_single_file():
             print(f"{BOLD_YELLOW}Downloads Folder is Empty{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
             print("  No downloaded files to delete.\n")
-            sys.stdout.write("\033[?25h")
-            input("Press Enter to continue...")
-            sys.stdout.write("\033[?25l")
+            safe_input("Press Enter to continue...")
             break
 
         header = [
@@ -1056,14 +1101,12 @@ def handle_delete_single_file():
         if selected_file.exists():
             file_size_mb = selected_file.stat().st_size / (1024 * 1024)
             clear_screen()
-            sys.stdout.write("\033[?25h")
             print(f"{BOLD_CYAN}============================================================{NC}")
             print(f"{BOLD_RED}Delete File Confirmation{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
             print(f"  File : {BOLD_CYAN}{selected_file.name}{NC}")
             print(f"  Size : {BOLD_YELLOW}{file_size_mb:.1f} MB{NC}\n")
-            ans = input("  Are you sure you want to permanently delete this file? (y/N): ").strip().lower()
-            sys.stdout.write("\033[?25l")
+            ans = safe_input("  Are you sure you want to permanently delete this file? (y/N): ").strip().lower()
             if ans == "y":
                 try:
                     selected_file.unlink()
@@ -1149,14 +1192,12 @@ def handle_browse_downloads():
                     print(f"Error opening file: {e}")
             elif act_choice == "delete":
                 clear_screen()
-                sys.stdout.write("\033[?25h")
                 print(f"{BOLD_CYAN}============================================================{NC}")
                 print(f"{BOLD_RED}Delete File Confirmation{NC}")
                 print(f"{BOLD_CYAN}============================================================{NC}\n")
                 print(f"  File : {BOLD_CYAN}{selected_file.name}{NC}")
                 print(f"  Size : {BOLD_YELLOW}{file_size_mb:.1f} MB{NC}\n")
-                ans = input("  Are you sure you want to permanently delete this file? (y/N): ").strip().lower()
-                sys.stdout.write("\033[?25l")
+                ans = safe_input("  Are you sure you want to permanently delete this file? (y/N): ").strip().lower()
                 if ans == "y":
                     try:
                         selected_file.unlink()
@@ -1489,13 +1530,11 @@ def handle_settings_menu():
                 save_config(cfg)
         elif choice == "dir":
             clear_screen()
-            sys.stdout.write("\033[?25h")
             print(f"{BOLD_CYAN}============================================================{NC}")
             print(f"{BOLD_YELLOW}Change Download Directory{NC}")
             print(f"  Current Path: {BOLD_GREEN}{down_dir}{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
-            val = input(f"  Enter new folder path (press Enter to keep '{down_dir}'): ").strip()
-            sys.stdout.write("\033[?25l")
+            val = safe_input(f"  Enter new folder path (press Enter to keep '{down_dir}'): ").strip()
             if val and val.lower() not in ("q", "quit", "cancel", "back"):
                 cfg["download_dir"] = val
                 save_config(cfg)
@@ -1539,8 +1578,12 @@ def handle_filename_style_config():
 def run_tui():
     """Main TUI Loop structured in 3 categories: Download, Directory, Settings."""
     try:
-        clear_screen()
-        sys.stdout.write("\033[?1049h\033[H\033[?25l")  # Alternate screen buffer & hide cursor
+        configure_windows_console()
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            clear_screen()
+        sys.stdout.write("\033[H\033[?25l")
         sys.stdout.flush()
         curr_idx = 0
 
@@ -1586,9 +1629,10 @@ def run_tui():
     except KeyboardInterrupt:
         pass
     finally:
-        clear_screen()
-        sys.stdout.write("\033[?1049l\033[?25h")  # Restore screen buffer & cursor
+        set_quick_edit_mode(True)
+        sys.stdout.write("\033[?25h")
         sys.stdout.flush()
+        clear_screen()
 
 
 if __name__ == "__main__":
