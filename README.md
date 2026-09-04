@@ -8,11 +8,13 @@ An ultra-fast, zero-lag interactive Terminal UI for downloading, converting, and
 
 - 🚀 **Zero-Lag ANSI Terminal UI**: Smooth keyboard-driven navigation (`↑/↓`, number jump `1-9`, `Enter`, `q`/`ESC`) with instant response.
 - 📐 **Dynamic Viewport Pagination**: Sliding-window pagination automatically adapts to any terminal height, preventing vertical scroll overflow and eliminating duplicate header spam.
+- 📋 **True Playlist Intelligence**: Resolves genuine playlist titles, video counts, and item previews (e.g. `Playlist Name: ... (3 Videos)` with itemized listing), with instant in-memory caching for zero-latency backtracking.
+- 📊 **Multi-Stream ANSI Progress**: Cleanly separates Video and Audio stream downloads with distinct progress bars, dynamic `MB/s` speed formatting, and zero noisy raw stdout spam (`noprogress: True`).
 - 🔍 **Smart Upscale Engine**: Native support for upscaling lower-resolution sources to 1440p (2K), 2160p (4K), and 4320p (8K) via FFmpeg's high-precision Lanczos filter (`scale=-2:H:flags=lanczos`).
 - 🎵 **Comprehensive Audio Transcoding**: Convert to MP3 (up to 320 kbps), M4A (AAC), Opus, WAV (lossless PCM), or preserve the original best audio stream.
 - 🎬 **Granular Video Settings**: Select target resolutions (144p to 8K), video codecs (`h264`, `av1`, `vp9`, `auto`), and containers (`mp4`, `webm`, `mkv`, `auto`).
 - 🏷️ **Custom Filename Styles**: Choose between `basic`, `pretty`, `nerdy`, and `classic` naming conventions.
-- 📂 **Media Management**: Browse files with active cursor memory, play in the system default media player, or delete items individually (1 by 1) with safe confirmation prompts.
+- 📂 **Media Management**: Browse files with active cursor memory, play in the system default media player, or delete items individually with safety confirmation prompts (bulk deletion automatically returns to Main Menu).
 - 📦 **Bundled FFmpeg Runtime**: Uses `imageio-ffmpeg` static binaries — zero manual PATH setup or external FFmpeg installation required.
 - 💻 **Cross-Platform Dual Launchers**: Native Windows launcher (`run.bat`) and universal POSIX Bash launcher (`yt.sh`) for Linux, macOS, WSL, and Git Bash.
 - ⚡ **Headless CLI Mode**: Full command-line argument support for scripts, automation, and background jobs.
@@ -118,25 +120,27 @@ The interactive TUI is organized into 3 clear operational modules:
 ```
 
 ### 1. 🚀 Download Media
-- **Strict YouTube URL Validation**: Instant syntax and domain validation prevents invalid or spoofed links (supports standard watch URLs, `youtu.be`, Shorts, Live streams, Clips, and Playlists).
-- **Interactive Playlist Support**: When a playlist is detected, choose between:
-  - **Download Entire Playlist (All Videos)**: Downloads all items sequentially.
-  - **Pick a Specific Video from this Playlist**: Fetches metadata and opens an interactive browser displaying titles, durations, and indices so you can select and download any single video.
-  - *Seamless Navigation*: Backing out of the format/quality selection returns right back to the playlist options without re-entering the URL.
-- Options:
-  - **Download with Default Settings**: Instant download using your saved preferences.
-  - **Custom / On-the-fly Override**: Select resolution, codec, container, or audio format specifically for this download.
-- Real-time ANSI progress bar displays download percentage, transfer speed, downloaded/total size, and ETA.
+- **Strict YouTube URL Validation**: Instant syntax and domain validation prevents invalid or spoofed links (supports standard watch URLs, `youtu.be`, Shorts, Live streams, Clips, Channels, and Playlists).
+- **True Playlist Resolution & Item Previews**:
+  - Automatically queries the genuine playlist name and total count (e.g., `米津玄師「馬と鹿」9.11 release (3 Videos)`).
+  - Shows an itemized preview list (`Playlist Items: 1. ... | 2. ... | 3. ...`) in the format selection header and download screen.
+  - Streamlined choices: **Download Entire Playlist (All Videos)** or **Pick a Specific Video from this Playlist**.
+  - In-memory metadata caching guarantees zero-latency backtracking (`[q]`/Back) without re-fetching.
+- **Multi-Stream Progress Tracking**:
+  - Visually separates YouTube DASH adaptive streams (`↳ Video Stream` -> `✔ Finished` -> `↳ Audio Stream` -> `⚙ FFmpeg Merge`).
+  - Dynamic speed units automatically switch between `KB/s` and `MB/s`.
+  - Built-in suppression of raw yt-dlp console output (`noprogress: True`) ensures a flicker-free UI.
+- **Download Overrides**: Instant download using saved defaults or pick on-the-fly resolution, codec, container, or audio transcode.
 
 ### 2. 📂 Directory & Files
-- **Browse & Manage Media Files**: Lists all completed audio and video files with file sizes. Selecting any file presents a dedicated action menu:
-  - **▶ Open in Default Media Player**: Plays the selected file in your system player (e.g., VLC, Windows Media Player, mpv). Returning preserves your cursor position.
-  - **🗑 Delete this File**: Prompts for confirmation `(y/N)` and permanently deletes the individual file.
-  - *Clean File Listing*: Automatically filters out hidden temporary files (`.temp_*`).
-- **Delete File 🗑**: Centralized deletion hub with two options:
-  - **Delete File Individually (1 by 1) 🗑**: Dedicated browser to pick and delete specific files one at a time with safety confirmation `(y/N)`.
-  - **Delete All Files in Downloads Folder ⚠️**: Bulk cleanup option with file count and total storage confirmation prompt.
-- **Open in File Explorer ↗**: Instantly launches the download folder in Windows Explorer (`explorer.exe`), macOS Finder (`open`), or Linux file managers (`xdg-open`).
+- **Browse & Manage Media Files**: Lists all completed media files with active cursor retention. Selecting a file presents:
+  - **▶ Open in Default Media Player**: Launches the selected file in your default player (VLC, Windows Media Player, mpv).
+  - **🗑 Delete this File**: Prompts for confirmation `(y/N)` and permanently removes the file.
+  - *Clean File Listing*: Automatically hides incomplete or temporary files (`.part`, `.ytdl`).
+- **Delete File 🗑**: Centralized deletion hub:
+  - **Delete File Individually (1 by 1) 🗑**: Browse and delete specific files with confirmation while staying in the browser.
+  - **Delete All Files in Downloads Folder ⚠️**: Bulk cleanup with file count and total storage confirmation prompt; automatically returns straight to the **Main Menu** upon successful deletion.
+- **Open in File Explorer ↗**: Instantly opens the downloads directory in Windows Explorer, macOS Finder, or Linux file managers.
 
 ### 3. ⚙ Settings & Preferences
 Centralized settings management with dedicated submenus:
