@@ -1,0 +1,11 @@
+{
+  "filename_style": "basic",
+  "default_resolution": "1080",
+  "video_codec": "h264",
+  "video_container": "auto",
+  "audio_format": "mp3",
+  "audio_bitrate": "320",
+  "download_dir": "downloads",
+  "playlist_mode": "ask",
+  "force_upscale": false
+}
