@@ -17,7 +17,8 @@ class ThreadsExtractor(BaseExtractor):
     """Extractor for Meta Threads Posts (Videos, Photos, and Carousels/Slides)."""
 
     THREADS_REGEX = re.compile(
-        r"^(https?://)?(www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t)/([a-zA-Z0-9_-]+)"
+        r"(?:https?://)?(?:www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t)/([a-zA-Z0-9_-]+)",
+        re.IGNORECASE
     )
 
     BROWSER_HEADERS = {
@@ -36,16 +37,16 @@ class ThreadsExtractor(BaseExtractor):
 
     @classmethod
     def is_suitable(cls, url: str) -> bool:
-        return bool(cls.THREADS_REGEX.match(url.strip()))
+        return bool(cls.THREADS_REGEX.search(url.strip()))
 
     def validate_url(self, url: str) -> tuple[bool, str, str]:
         url = url.strip()
-        m = self.THREADS_REGEX.match(url)
+        m = self.THREADS_REGEX.search(url)
         if not m:
             return False, "", "Not a valid Threads URL (expected format: https://www.threads.net/@user/post/ID or /t/ID)"
-        user = m.group(3) or "threads"
-        post_id = m.group(4)
-        clean_url = f"https://www.threads.net/@{user}/post/{post_id}"
+        user = m.group(1)
+        post_id = m.group(2)
+        clean_url = f"https://www.threads.net/@{user}/post/{post_id}" if user else f"https://www.threads.net/t/{post_id}"
         return True, clean_url, ""
 
     @staticmethod
@@ -66,11 +67,11 @@ class ThreadsExtractor(BaseExtractor):
                 ThreadsExtractor._collect_posts(item, out)
 
     def fetch_metadata(self, url: str) -> MediaItem | None:
-        m = self.THREADS_REGEX.match(url.strip())
+        m = self.THREADS_REGEX.search(url.strip())
         if not m:
             return None
-        user = m.group(3) or "threads"
-        post_id = m.group(4)
+        user = m.group(1) or "threads"
+        post_id = m.group(2)
 
         try:
             req = urllib.request.Request(url, headers=self.BROWSER_HEADERS)
@@ -212,9 +213,9 @@ class ThreadsExtractor(BaseExtractor):
         )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        m = self.THREADS_REGEX.match(item.url)
-        user = m.group(3) or "threads"
-        post_id = m.group(4) if m else "media"
+        m = self.THREADS_REGEX.search(item.url)
+        user = (m.group(1) if m and m.group(1) else None) or "threads"
+        post_id = m.group(2) if m else "media"
 
         downloaded_files = []
         author_clean = re.sub(r'[\\/*?:"<>|@]', "", item.author.replace(" ", "_")).strip() or user

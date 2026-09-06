@@ -24,7 +24,7 @@ def detect_platform(url: str) -> str | None:
         return "twitter"
     if "instagram.com" in clean:
         return "instagram"
-    if "threads.net" in clean:
+    if "threads.net" in clean or "threads.com" in clean:
         return "threads"
     return None
 
