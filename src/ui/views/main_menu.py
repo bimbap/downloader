@@ -17,6 +17,7 @@ from core.console import (
     clear_screen,
 )
 from core.config import load_config
+from core.i18n import t
 from ui.menu import select_menu_option
 from ui.views.smart_download import run_smart_download
 from ui.views.youtube_view import run_youtube_view
@@ -45,20 +46,20 @@ def run_main_menu():
         ]
 
         options = [
-            ("⚡ Smart Download (Paste Any Social Link)", "smart", True, False),
-            ("🔴 YouTube Downloader (Video, Audio, Playlist)", "youtube", True, False),
-            ("🐦 X / Twitter Downloader (Video, GIF, Photos)", "twitter", True, False),
-            ("📷 Instagram Downloader (Reels, Videos, Photos)", "instagram", True, False),
-            ("🧵 Threads Downloader (Video, Photos)", "threads", True, False),
-            ("📁 Manage Downloaded Media", "manager", True, True),
-            ("⚙ Settings & Preferences", "settings", True, False),
-            ("Exit Downloader", "exit", False, True)
+            (t("menu_smart"), "smart", True, False),
+            (t("menu_youtube"), "youtube", True, False),
+            (t("menu_twitter"), "twitter", True, False),
+            (t("menu_instagram"), "instagram", True, False),
+            (t("menu_threads"), "threads", True, False),
+            (t("menu_manager"), "manager", True, True),
+            (t("menu_settings"), "settings", True, False),
+            (t("menu_exit"), "exit", False, True)
         ]
 
-        choice = select_menu_option("UNIVERSAL MEDIA DOWNLOADER 🚀", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("app_title"), options, current_idx=curr_idx, header_info=header)
         if choice in ("exit", "back", None):
             clear_screen()
-            print(f"\n  {BOLD_CYAN}Thank you for using Downloader. See you! 👋{NC}\n")
+            print(f"\n  {BOLD_CYAN}{t('thanks')}{NC}\n")
             break
 
         if choice == "smart":

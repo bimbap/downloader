@@ -12,14 +12,14 @@ from core.console import (
     NC,
     clear_screen,
     safe_input,
-    get_key,
 )
 from core.config import (
     load_config,
     save_config,
     resolve_video_container,
-    get_download_path,
 )
+from core.file_manager import clean_temp_files, reset_config
+from core.i18n import t, get_current_language, set_current_language
 from ui.menu import select_menu_option
 
 
@@ -44,10 +44,10 @@ def handle_video_settings():
             (f"{'Preferred Video Codec':<34} [{current_codec.upper()}] ⚙", "codec", True, False),
             (f"{'Video Container':<34} [{current_container.upper()} -> .{eff_container}] ⚙", "container", True, False),
             (f"{'Force Upscale Resolution':<34} [{upscale_disp}]", "toggle_upscale", True, False),
-            ("Back to Settings", "back", False, True)
+            (t("back_simple"), "back", False, True)
         ]
 
-        choice = select_menu_option("Video Settings 🎬", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("setting_video"), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -60,7 +60,7 @@ def handle_video_settings():
                 ("1080p (Full HD)", "1080", True, False),
                 ("720p  (HD Standard)", "720", True, False),
                 ("480p  (SD Standard)", "480", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             r = select_menu_option("Select Target Resolution", res_opts)
             if r and r != "back":
@@ -74,7 +74,7 @@ def handle_video_settings():
                 ("AV1 - Next-Gen Ultra Efficient, 4K & 8K", "av1", True, False),
                 ("VP9 - Google Web Standard, 2K & 4K", "vp9", True, False),
                 ("Auto - Best Available", "auto", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             c = select_menu_option("Select Preferred Codec", codec_opts)
             if c and c != "back":
@@ -88,7 +88,7 @@ def handle_video_settings():
                 ("MP4  - Standard Universal Container", "mp4", True, False),
                 ("MKV  - Matroska (High Flexibility)", "mkv", True, False),
                 ("WebM - Open Web Media Container", "webm", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             cnt = select_menu_option("Select Video Container", cnt_opts)
             if cnt and cnt != "back":
@@ -116,10 +116,10 @@ def handle_audio_settings():
         options = [
             (f"{'Audio Format':<34} [{current_fmt.upper()}] ⚙", "format", True, False),
             (f"{'Target Bitrate':<34} [{current_br}k] ⚙", "bitrate", True, False),
-            ("Back to Settings", "back", False, True)
+            (t("back_simple"), "back", False, True)
         ]
 
-        choice = select_menu_option("Audio Settings 🎵", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("setting_audio"), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -131,7 +131,7 @@ def handle_audio_settings():
                 ("Opus - High-Fidelity Web Standard", "opus", True, False),
                 ("WAV  - Lossless Uncompressed PCM", "wav", True, False),
                 ("Best - Keep Original Audio Stream", "best", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             f = select_menu_option("Select Audio Format", fmt_opts)
             if f and f != "back":
@@ -145,7 +145,7 @@ def handle_audio_settings():
                 ("256 kbps (Very High Quality)", "256", True, False),
                 ("192 kbps (Standard High Quality)", "192", True, False),
                 ("128 kbps (Standard / Space Saver)", "128", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             b = select_menu_option("Select Bitrate", br_opts)
             if b and b != "back":
@@ -171,10 +171,10 @@ def handle_storage_settings():
             (f"{'Output Folder Path':<34} [{out_dir}] ⚙", "change_dir", True, False),
             (f"{'Organize by Platform':<34} [{'ON' if org_platform else 'OFF'}]", "toggle_org", True, False),
             (f"{'Organize by Media Category':<34} [{'ON' if org_category else 'OFF'}]", "toggle_cat", True, False),
-            ("Back to Settings", "back", False, True)
+            (t("back_simple"), "back", False, True)
         ]
 
-        choice = select_menu_option("Storage & Folders 📁", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("setting_storage"), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -200,6 +200,86 @@ def handle_storage_settings():
             curr_idx = 2
 
 
+def handle_language_settings():
+    """Select UI display language (Indonesian or English)."""
+    curr = get_current_language()
+    curr_idx = 0 if curr == "id" else 1
+
+    lang_opts = [
+        ("Bahasa Indonesia 🇮🇩 (Indonesian)", "id", True, False),
+        ("English 🇬🇧 (International)", "en", True, False),
+        (t("back_simple"), "back", False, True),
+    ]
+
+    header = [
+        f"Active: {BOLD_GREEN}{'Bahasa Indonesia 🇮🇩' if curr == 'id' else 'English 🇬🇧'}{NC}",
+        f"{DIM}Select your preferred application language / Pilih bahasa tampilan aplikasi.{NC}"
+    ]
+
+    choice = select_menu_option(t("lang_select_title"), lang_opts, current_idx=curr_idx, header_info=header)
+    if choice and choice != "back":
+        set_current_language(choice)
+
+
+def handle_cookie_settings():
+    """Select browser to automatically import authentication cookies for age-restricted/login posts."""
+    cfg = load_config()
+    current_b = (cfg.get("browser_cookies") or "none").lower()
+
+    header = [
+        t("cookies_desc"),
+        f"Active: {BOLD_CYAN}{current_b.upper()}{NC}"
+    ]
+
+    cookie_opts = [
+        ("None (Default / No Cookies)", "none", True, False),
+        ("Google Chrome 🌐", "chrome", True, False),
+        ("Mozilla Firefox 🦊", "firefox", True, False),
+        ("Microsoft Edge 🌀", "edge", True, False),
+        ("Brave Browser 🦁", "brave", True, False),
+        ("Opera / Opera GX 🎭", "opera", True, False),
+        ("Vivaldi 🔴", "vivaldi", True, False),
+        (t("back_simple"), "back", False, True),
+    ]
+
+    idx = 0
+    for i, (_, val, _, _) in enumerate(cookie_opts):
+        if val == current_b:
+            idx = i
+            break
+
+    b = select_menu_option(t("cookies_select_title"), cookie_opts, current_idx=idx, header_info=header)
+    if b and b != "back":
+        cfg["browser_cookies"] = b
+        save_config(cfg)
+
+
+def handle_clean_cache():
+    """Purge temporary and broken partial files."""
+    clear_screen()
+    cleaned_count, freed_bytes = clean_temp_files()
+    freed_mb = freed_bytes / (1024 * 1024)
+
+    print(f"\n  {BOLD_CYAN}── {t('setting_clean')} ──────────────────────{NC}\n")
+    if cleaned_count > 0:
+        print(f"  {BOLD_GREEN}{t('cache_cleaned', count=cleaned_count, size=freed_mb)}{NC}\n")
+    else:
+        print(f"  {DIM}{t('cache_already_clean')}{NC}\n")
+    safe_input(f"  {t('back_simple')} (Press Enter to continue)...")
+
+
+def handle_reset_defaults():
+    """Reverts configuration back to default values."""
+    clear_screen()
+    print(f"\n  {BOLD_RED}── {t('reset_confirm_title')} ──────────────────────{NC}\n")
+    print(f"  {t('reset_confirm_msg')}\n")
+    ans = safe_input(f"  {BOLD_YELLOW}{t('confirm_delete_prompt')}{NC} ").strip().upper()
+    if ans in ("YES", "YA", "Y"):
+        reset_config()
+        print(f"\n  {BOLD_GREEN}{t('reset_success')}{NC}\n")
+        safe_input(f"  {t('back_simple')} (Press Enter to continue)...")
+
+
 def run_settings_view():
     """Top-level Settings Menu."""
     curr_idx = 0
@@ -210,20 +290,30 @@ def run_settings_view():
         codec = cfg.get("video_codec", "h264")
         afmt = cfg.get("audio_format", "mp3")
         upscale = cfg.get("force_upscale", False)
+        lang = cfg.get("language", "id")
+        cookies = cfg.get("browser_cookies", "none")
+
+        lang_disp = "🇮🇩 ID" if lang == "id" else "🇬🇧 EN"
+        cookies_disp = cookies.upper() if cookies != "none" else "OFF"
 
         header = [
-            f"Video: {BOLD_GREEN}{res}p / {codec.upper()}{NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}  |  Naming: {BOLD_YELLOW}{style.upper()}{NC}"
+            f"Video: {BOLD_GREEN}{res}p / {codec.upper()}{NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}  |  Naming: {BOLD_YELLOW}{style.upper()}{NC}",
+            f"Lang : {BOLD_CYAN}{lang_disp}{NC}  |  Cookies: {BOLD_YELLOW}{cookies_disp}{NC}"
         ]
 
         options = [
-            (f"{'Video Settings 🎬':<36} [{res}p / {codec.upper()}] ⚙", "video", True, False),
-            (f"{'Audio Settings 🎵':<36} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k] ⚙", "audio", True, False),
-            (f"{'Filename Style 🏷':<36} [{style.upper()}] ⚙", "style", True, False),
-            (f"{'Storage & Folders 📁':<36} ⚙", "storage", True, False),
-            ("Return to Main Menu", "back", False, True)
+            (f"{t('setting_video'):<38} [{res}p / {codec.upper()}] ⚙", "video", True, False),
+            (f"{t('setting_audio'):<38} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k] ⚙", "audio", True, False),
+            (f"{t('setting_style'):<38} [{style.upper()}] ⚙", "style", True, False),
+            (f"{t('setting_storage'):<38} ⚙", "storage", True, False),
+            (f"{t('setting_language'):<38} [{lang_disp}] ⚙", "language", True, False),
+            (f"{t('setting_cookies'):<38} [{cookies_disp}] ⚙", "cookies", True, False),
+            (f"{t('setting_clean'):<38} 🧹", "clean", True, False),
+            (f"{t('setting_reset'):<38} 🔄", "reset", True, False),
+            (t("back"), "back", False, True)
         ]
 
-        choice = select_menu_option("PENGATURAN / SETTINGS ⚙", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("settings_title"), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -240,7 +330,7 @@ def run_settings_view():
                 ("Pretty  - Title - Author (platform).ext", "pretty", True, False),
                 ("Nerdy   - Title - Author (platform, id).ext", "nerdy", True, False),
                 ("Classic - platform_id_res.ext", "classic", True, False),
-                ("Back", "back", False, True)
+                (t("back_simple"), "back", False, True)
             ]
             st = select_menu_option("Select Filename Style", style_opts)
             if st and st != "back":
@@ -250,3 +340,15 @@ def run_settings_view():
         elif choice == "storage":
             handle_storage_settings()
             curr_idx = 3
+        elif choice == "language":
+            handle_language_settings()
+            curr_idx = 4
+        elif choice == "cookies":
+            handle_cookie_settings()
+            curr_idx = 5
+        elif choice == "clean":
+            handle_clean_cache()
+            curr_idx = 6
+        elif choice == "reset":
+            handle_reset_defaults()
+            curr_idx = 7

@@ -26,6 +26,7 @@ from core.file_manager import (
     delete_all_files,
 )
 from core.config import get_download_path
+from core.i18n import t
 from ui.menu import select_menu_option
 
 
@@ -39,10 +40,10 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
             print(f"{BOLD_CYAN}============================================================{NC}")
             print(f"{BOLD_YELLOW}{icon} {title}{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
-            print(f"  {DIM}Folder Path:{NC} {BOLD_BLUE}{target_path}{NC}")
-            print(f"  {BOLD_YELLOW}No files remaining in this folder.{NC}\n")
+            print(f"  {DIM}{t('folder')}:{NC} {BOLD_BLUE}{target_path}{NC}")
+            print(f"  {BOLD_YELLOW}{t('no_files_category')}{NC}\n")
             print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
-            print(f"  {DIM}[Enter/q] Back  |  [o] Open Folder in Explorer{NC}")
+            print(f"  {DIM}[Enter/q] {t('back_simple')}  |  [o] {t('open_folder')}{NC}")
             print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
 
             while True:
@@ -59,8 +60,8 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
         total_size_mb = sum(f.stat().st_size for f in files) / (1024 * 1024)
         header = [
             f"Location: {BOLD_YELLOW}{icon} {title}{NC}",
-            f"Folder  : {BOLD_BLUE}{target_path}{NC}",
-            f"Library : {BOLD_GREEN}{len(files)}{NC} items  |  Size: {BOLD_YELLOW}{total_size_mb:.1f} MB{NC}"
+            f"{t('folder')}  : {BOLD_BLUE}{target_path}{NC}",
+            f"{t('library')} : {BOLD_GREEN}{len(files)}{NC} {t('items')}  |  {t('size')}: {BOLD_YELLOW}{total_size_mb:.1f} MB{NC}"
         ]
 
         options = []
@@ -72,10 +73,10 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
             label = f"{f_icon} {sub_tag}{f.name} ({size_mb:.1f} MB)"
             options.append((label, f"file_{idx}", True, False))
 
-        options.append(("[Open This Folder in Explorer 📂]", "open_folder", False, True))
+        options.append((t("open_this_folder"), "open_folder", False, True))
         if can_delete_all:
-            options.append(("[Delete All Files in This Folder 🗑]", "delete_all", False, False))
-        options.append(("Back", "back", False, True))
+            options.append((t("delete_all_in_folder"), "delete_all", False, False))
+        options.append((t("back_simple"), "back", False, True))
 
         choice = select_menu_option(f"{icon} {title}", options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
@@ -89,17 +90,17 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
         elif choice == "delete_all":
             clear_screen()
             print(f"{BOLD_RED}============================================================{NC}")
-            print(f"{BOLD_RED}⚠ CONFIRM FOLDER DELETION{NC}")
+            print(f"{BOLD_RED}{t('confirm_delete_title')}{NC}")
             print(f"{BOLD_RED}============================================================{NC}\n")
-            print(f"  Are you sure you want to delete ALL {BOLD_YELLOW}{len(files)}{NC} files in:")
+            print(f"  {t('confirm_delete_msg', count=len(files))}")
             print(f"  {BOLD_CYAN}{title}{NC} ({BOLD_BLUE}{target_path}{NC})?\n")
-            print(f"  Type {BOLD_RED}'YES'{NC} to confirm, or press Enter to cancel:")
-            confirm = safe_input("  Confirm: ").strip()
+            print(f"  {t('confirm_delete_prompt')}")
+            confirm = safe_input("  Confirm: ").strip().upper()
 
-            if confirm.upper() == "YES":
+            if confirm in ("YES", "YA", "Y"):
                 deleted = delete_all_files(target_path)
                 clear_screen()
-                print(f"\n  {BOLD_GREEN}✔ Deleted {deleted} file(s) successfully.{NC}\n")
+                print(f"\n  {BOLD_GREEN}{t('deleted_success', count=deleted)}{NC}\n")
                 return
             clear_screen()
 
@@ -109,17 +110,17 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
             curr_idx = f_idx
 
             file_opts = [
-                ("Play / View Media ▶", "play", True, False),
-                ("Delete File 🗑", "delete", True, False),
-                ("Back", "back", False, True)
+                (t("play_media"), "play", True, False),
+                (t("delete_file"), "delete", True, False),
+                (t("back_simple"), "back", False, True)
             ]
             f_size = selected_file.stat().st_size / (1024 * 1024)
             f_header = [
                 f"File : {BOLD_YELLOW}{selected_file.name}{NC}",
-                f"Size : {f_size:.1f} MB  |  Location: {title}",
+                f"{t('size')} : {f_size:.1f} MB  |  Location: {title}",
                 f"Path : {selected_file.parent}"
             ]
-            f_choice = select_menu_option("File Action", file_opts, header_info=f_header)
+            f_choice = select_menu_option(t("file_action"), file_opts, header_info=f_header)
             if f_choice == "play":
                 open_file_in_player(selected_file)
             elif f_choice == "delete":
@@ -149,21 +150,21 @@ def run_platform_view(plat_data: dict):
         # Multiple format categories exist (e.g. photo and video)
         header = [
             f"Platform: {BOLD_YELLOW}{current['icon']} {current['name']}{NC}",
-            f"Storage : {BOLD_BLUE}{current['path']}{NC}",
-            f"Library : {BOLD_GREEN}{current['count']}{NC} files  |  Size: {BOLD_YELLOW}{current['size_mb']:.1f} MB{NC}"
+            f"{t('storage')} : {BOLD_BLUE}{current['path']}{NC}",
+            f"{t('library')} : {BOLD_GREEN}{current['count']}{NC} {t('files')}  |  {t('size')}: {BOLD_YELLOW}{current['size_mb']:.1f} MB{NC}"
         ]
 
         options = [
-            (f"📂 All {current['name']} Media [{current['count']} files • {current['size_mb']:.1f} MB]", "all", True, False)
+            (t("all_platform_media", name=current['name'], count=current['count'], size=current['size_mb']), "all", True, False)
         ]
         for cat in cats:
-            label = f"{cat['icon']} {cat['name']} [{cat['count']} files • {cat['size_mb']:.1f} MB]"
+            label = f"{cat['icon']} {cat['name']} [{cat['count']} {t('files')} • {cat['size_mb']:.1f} MB]"
             options.append((label, cat["key"], True, False))
 
-        options.append((f"[Open {current['name']} Folder in Explorer 📂]", "open_plat_folder", False, True))
-        options.append(("Back to Platform Selection", "back", False, True))
+        options.append((t("open_platform_folder", name=current['name']), "open_plat_folder", False, True))
+        options.append((t("back_simple"), "back", False, True))
 
-        choice = select_menu_option(f"{current['icon']} {current['name']} – Select Format", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("manager_select_format", icon=current['icon'], name=current['name']), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -191,12 +192,12 @@ def run_manager_view():
         if not platforms:
             clear_screen()
             print(f"{BOLD_CYAN}============================================================{NC}")
-            print(f"{BOLD_YELLOW}📁 Downloaded Media Manager{NC}")
+            print(f"{BOLD_YELLOW}📁 {t('menu_manager')}{NC}")
             print(f"{BOLD_CYAN}============================================================{NC}\n")
-            print(f"  {DIM}Storage Path:{NC} {BOLD_BLUE}{root_dir}{NC}")
-            print(f"  {BOLD_YELLOW}No downloaded media files found.{NC}\n")
+            print(f"  {DIM}{t('storage')}:{NC} {BOLD_BLUE}{root_dir}{NC}")
+            print(f"  {BOLD_YELLOW}{t('no_files_found')}{NC}\n")
             print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
-            print(f"  {DIM}[Enter/q] Back to Menu  |  [o] Open Downloads Folder{NC}")
+            print(f"  {DIM}[Enter/q] {t('back')}  |  [o] {t('open_folder')}{NC}")
             print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
 
             while True:
@@ -214,22 +215,22 @@ def run_manager_view():
         total_size_mb = sum(p["size_mb"] for p in platforms)
 
         header = [
-            f"Storage : {BOLD_BLUE}{root_dir}{NC}",
-            f"Library : {BOLD_GREEN}{total_files}{NC} items  |  Total Size: {BOLD_YELLOW}{total_size_mb:.1f} MB{NC}"
+            f"{t('storage')} : {BOLD_BLUE}{root_dir}{NC}",
+            f"{t('library')} : {BOLD_GREEN}{total_files}{NC} {t('items')}  |  {t('size')}: {BOLD_YELLOW}{total_size_mb:.1f} MB{NC}"
         ]
 
         options = []
         if len(platforms) > 1:
-            options.append((f"📂 All Platforms [{total_files} files • {total_size_mb:.1f} MB]", "all_platforms", True, False))
+            options.append((t("all_platforms", count=total_files, size=total_size_mb), "all_platforms", True, False))
 
         for p in platforms:
-            label = f"{p['icon']} {p['name']} [{p['count']} files • {p['size_mb']:.1f} MB]"
+            label = f"{p['icon']} {p['name']} [{p['count']} {t('files')} • {p['size_mb']:.1f} MB]"
             options.append((label, p["key"], True, False))
 
-        options.append(("[Open Downloads Folder in Explorer 📂]", "open_root", False, True))
-        options.append(("Return to Main Menu", "back", False, True))
+        options.append((t("open_root_folder"), "open_root", False, True))
+        options.append((t("back"), "back", False, True))
 
-        choice = select_menu_option("📁 Manage Downloads – Select Platform", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(t("manager_title"), options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -238,7 +239,7 @@ def run_manager_view():
             open_download_folder(root_dir)
             curr_idx = len(options) - 2
         elif choice == "all_platforms":
-            run_file_browser(root_dir, "All Downloaded Media", icon="📂")
+            run_file_browser(root_dir, t("all_media"), icon="📂")
             curr_idx = 0
         else:
             selected_plat = next((p for p in platforms if p["key"] == choice), None)

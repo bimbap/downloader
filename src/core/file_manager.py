@@ -249,3 +249,42 @@ def delete_all_files(folder_path: Path | str | None = None) -> int:
         if delete_file(f):
             deleted_count += 1
     return deleted_count
+
+
+def clean_temp_files(root_dir: Path | None = None) -> tuple[int, int]:
+    """
+    Cleans temporary and partial download files (.part, .ytdl, etc.).
+    Returns (cleaned_file_count, freed_bytes).
+    """
+    base = root_dir or get_download_path()
+    cleaned = 0
+    freed = 0
+
+    scan_dirs = [base]
+    scratch_dir = base.parent / "scratch"
+    if scratch_dir.exists():
+        scan_dirs.append(scratch_dir)
+
+    temp_exts = {".part", ".ytdl", ".temp", ".tmp"}
+    for d in scan_dirs:
+        if not d.exists():
+            continue
+        for f in d.rglob("*"):
+            if f.is_file():
+                if f.suffix.lower() in temp_exts or ".part-" in f.name:
+                    try:
+                        sz = f.stat().st_size
+                        f.unlink()
+                        cleaned += 1
+                        freed += sz
+                    except Exception:
+                        pass
+
+    return cleaned, freed
+
+
+def reset_config():
+    """Resets user configuration back to factory default."""
+    from core.config import DEFAULT_CONFIG, save_config
+    save_config(DEFAULT_CONFIG.copy())
+

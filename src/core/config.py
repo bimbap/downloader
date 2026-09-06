@@ -12,6 +12,8 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 DEFAULT_DOWNLOAD_DIR = BASE_DIR / "downloads"
 
 DEFAULT_CONFIG = {
+    "language": "id",                     # id, en
+    "browser_cookies": "none",            # none, chrome, firefox, edge, brave, opera, vivaldi
     "filename_style": "basic",            # classic, basic, pretty, nerdy
     "default_resolution": "1080",
     "video_codec": "h264",                # h264, av1, vp9, auto
@@ -177,3 +179,13 @@ def get_video_format_selector(resolution: str | None, codec: str | None = None) 
     if vcodec_filter:
         return f"bestvideo{vcodec_filter}{res_limit}+bestaudio/bestvideo{res_limit}+bestaudio/best{res_limit}/best"
     return f"bestvideo{res_limit}+bestaudio/best{res_limit}/best"
+
+
+def get_cookie_opts() -> dict:
+    """Returns yt-dlp cookie options based on configured browser (Chrome, Firefox, etc.)."""
+    cfg = load_config()
+    b = (cfg.get("browser_cookies") or "none").lower().strip()
+    if b and b != "none":
+        return {"cookiesfrombrowser": (b, None, None, None)}
+    return {}
+

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from extractors.base import BaseExtractor, MediaItem
-from core.config import get_download_path, load_config
+from core.config import get_download_path, load_config, get_cookie_opts
 from core.progress import create_ytdlp_progress_hook, download_file_with_progress
 from core.ffmpeg_engine import FFMPEG_EXE
 
@@ -102,6 +102,7 @@ class TwitterExtractor(BaseExtractor):
         if yt_dlp:
             try:
                 ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+                ydl_opts.update(get_cookie_opts())
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
                     if info:
@@ -174,6 +175,7 @@ class TwitterExtractor(BaseExtractor):
                 "no_warnings": True,
                 "windowsfilenames": True,
             }
+            ydl_opts.update(get_cookie_opts())
             if FFMPEG_EXE:
                 ydl_opts["ffmpeg_location"] = FFMPEG_EXE
             try:

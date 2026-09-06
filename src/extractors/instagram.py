@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from extractors.base import BaseExtractor, MediaItem
-from core.config import get_download_path, load_config
+from core.config import get_download_path, load_config, get_cookie_opts
 from core.progress import create_ytdlp_progress_hook, download_file_with_progress
 from core.ffmpeg_engine import FFMPEG_EXE
 
@@ -57,6 +57,7 @@ class InstagramExtractor(BaseExtractor):
         if yt_dlp and PhotoInstagramIE:
             try:
                 ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+                ydl_opts.update(get_cookie_opts())
                 ydl = yt_dlp.YoutubeDL(ydl_opts)
                 ie = PhotoInstagramIE(ydl)
                 info = ie._real_extract(url)
@@ -207,6 +208,7 @@ class InstagramExtractor(BaseExtractor):
                 "windowsfilenames": True,
                 "format": "bestvideo+bestaudio/best",
             }
+            ydl_opts.update(get_cookie_opts())
             if FFMPEG_EXE:
                 ydl_opts["ffmpeg_location"] = FFMPEG_EXE
 

@@ -1,4 +1,6 @@
 {
+  "language": "id",
+  "browser_cookies": "none",
   "filename_style": "basic",
   "default_resolution": "1080",
   "video_codec": "h264",
@@ -6,6 +8,8 @@
   "audio_format": "mp3",
   "audio_bitrate": "320",
   "download_dir": "downloads",
+  "organize_by_platform": true,
+  "organize_by_category": true,
   "playlist_mode": "ask",
   "force_upscale": false
 }

@@ -23,7 +23,11 @@ An ultra-fast, zero-lag interactive Terminal UI & CLI for downloading, convertin
 - 🧵 **Meta Threads Downloader**:
   - High-speed video and photo downloads directly from Threads posts.
 - 🔍 **GPU-Accelerated Upscale Engine**: Native support for upscaling lower-resolution sources to 1440p (2K), 2160p (4K), and 4320p (8K) via hardware GPU acceleration (NVIDIA NVENC, Intel QSV, AMD AMF) or optimized CPU Bicubic scaling with real-time streaming progress bars and ETA.
-- 📁 **Organized Media Storage**: Automatically routes downloads into clean subfolders (`downloads/youtube`, `downloads/x`, `downloads/instagram`, `downloads/threads`) or a unified directory.
+- 🌐 **Bilingual Interface (i18n)**: Seamless language switching between English 🇬🇧 and Bahasa Indonesia 🇮🇩 with instant in-memory translation updates.
+- 🍪 **Browser Cookie Authentication**: Directly import local session cookies from Chrome, Firefox, Edge, Brave, Opera, or Vivaldi to bypass YouTube age restrictions (18+) and download login-restricted Instagram and X posts.
+- 🧹 **1-Click Temp & Cache Cleaner**: Instant scanning and purging of broken partial downloads (`.part`, `.ytdl`, `.tmp`) to recover disk space.
+- 🔄 **Factory Reset & Recovery**: Effortlessly restore settings to factory defaults with interactive confirmation guards.
+- 📁 **Organized Media Storage**: Automatically routes downloads into clean subfolders (`downloads/platform/category`) or a unified directory.
 - 📂 **Built-in Media Manager**: Browse downloaded files with active cursor memory, play in the system default media player, or delete items with confirmation guards.
 - 📦 **Bundled FFmpeg Runtime**: Uses `imageio-ffmpeg` static binaries — zero manual PATH setup or external FFmpeg installation required.
 - 💻 **Cross-Platform Dual Launchers**: Native Windows launcher (`run.bat`) and universal POSIX Bash launchers (`dl.sh`, `yt.sh`) for Linux, macOS, WSL, and Git Bash.
@@ -57,6 +61,7 @@ downloader/
     ├── core/                        # Shared foundational engine
     │   ├── console.py               # VT100 ANSI, QuickEdit toggle, safe_input, key reader
     │   ├── config.py                # Configuration loader & persistent storage
+    │   ├── i18n.py                  # Bilingual localization engine (Indonesian & English)
     │   ├── ffmpeg_engine.py         # Hardware GPU acceleration (NVENC), Bicubic scaler
     │   ├── progress.py              # Universal live progress bars & stream tracking
     │   └── file_manager.py          # File browser, default player launcher, safe deletion

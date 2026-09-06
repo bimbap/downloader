@@ -15,6 +15,7 @@ from core.config import (
     get_outtmpl,
     resolve_video_container,
     get_video_format_selector,
+    get_cookie_opts,
 )
 from core.ffmpeg_engine import FFMPEG_EXE, FFmpegUpscalePP
 from core.progress import create_ytdlp_progress_hook
@@ -121,6 +122,7 @@ class YouTubeExtractor(BaseExtractor):
                 "extract_flat": "in_playlist" if is_pl else False,
                 "skip_download": True,
             }
+            ydl_opts.update(get_cookie_opts())
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if not info:
@@ -195,6 +197,7 @@ class YouTubeExtractor(BaseExtractor):
             "no_warnings": True,
             "windowsfilenames": True,
         }
+        ydl_opts.update(get_cookie_opts())
 
         if FFMPEG_EXE:
             ydl_opts["ffmpeg_location"] = FFMPEG_EXE
