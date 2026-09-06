@@ -31,16 +31,17 @@ def handle_video_settings():
         current_codec = cfg.get("video_codec", "h264")
         current_container = cfg.get("video_container", "auto")
         force_upscale = cfg.get("force_upscale", False)
+        disp_res = "Maksimal" if current_res in ("best", "max", "auto") else f"{current_res}p"
         eff_container = resolve_video_container(current_codec, current_container)
         upscale_disp = f"{BOLD_YELLOW}ON (GPU/Bicubic){NC}" if force_upscale else f"{DIM}OFF (Native Only){NC}"
 
         header = [
-            f"Quality: {BOLD_GREEN}{current_res}p{NC}  |  Codec: {BOLD_CYAN}{current_codec.upper()}{NC}  |  Container: {BOLD_YELLOW}.{eff_container}{NC}",
+            f"Quality: {BOLD_GREEN}{disp_res}{NC}  |  Codec: {BOLD_CYAN}{current_codec.upper()}{NC}  |  Container: {BOLD_YELLOW}.{eff_container}{NC}",
             f"Upscale: {BOLD_YELLOW if force_upscale else DIM}{'ON (Bicubic)' if force_upscale else 'OFF'}{NC}  |  {DIM}Auto upscale lower streams to target resolution via GPU/FFmpeg{NC}"
         ]
 
         options = [
-            (f"{'Target Resolution':<34} [{current_res}p]", "resolution", True, False),
+            (f"{'Target Resolution':<34} [{disp_res}]", "resolution", True, False),
             (f"{'Preferred Video Codec':<34} [{current_codec.upper()}]", "codec", True, False),
             (f"{'Video Container':<34} [{current_container.upper()} -> .{eff_container}]", "container", True, False),
             (f"{'Force Upscale Resolution':<34} [{upscale_disp}]", "toggle_upscale", True, False),
@@ -54,12 +55,13 @@ def handle_video_settings():
 
         if choice == "resolution":
             res_opts = [
-                ("4320p (8K Ultra HD)", "4320", True, False),
-                ("2160p (4K Ultra HD)", "2160", True, False),
-                ("1440p (2K Quad HD)", "1440", True, False),
-                ("1080p (Full HD)", "1080", True, False),
-                ("720p  (HD Standard)", "720", True, False),
-                ("480p  (SD Standard)", "480", True, False),
+                ("Auto   (Kualitas Maksimal / Best - 4K/8K)", "best", True, False),
+                ("4320p  (8K Ultra HD)", "4320", True, False),
+                ("2160p  (4K Ultra HD)", "2160", True, False),
+                ("1440p  (2K Quad HD)", "1440", True, False),
+                ("1080p  (Full HD Standard)", "1080", True, False),
+                ("720p   (HD Standard)", "720", True, False),
+                ("480p   (SD Standard)", "480", True, False),
                 (t("back_simple"), "back", False, True)
             ]
             r = select_menu_option("Select Target Resolution", res_opts)

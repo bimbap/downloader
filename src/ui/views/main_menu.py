@@ -40,9 +40,10 @@ def run_main_menu():
         afmt = cfg.get("audio_format", "mp3")
         upscale = cfg.get("force_upscale", False)
 
+        disp_res = "Maksimal" if res in ("best", "max", "auto") else f"{res}p"
         header = [
             f"Platforms: {BOLD_RED}YouTube{NC} • {BOLD_CYAN}X / Twitter{NC} • {BOLD_MAGENTA}Instagram{NC} • {BOLD_YELLOW}Threads{NC}",
-            f"Quality  : {BOLD_GREEN}{res}p ({codec.upper()}){NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}"
+            f"Quality  : {BOLD_GREEN}{disp_res} ({codec.upper()}){NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}"
         ]
 
         options = [

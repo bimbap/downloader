@@ -99,13 +99,14 @@ def run_youtube_download_flow(item: MediaItem):
         chosen_res = target_res
     elif choice == "video_custom":
         res_opts = [
-            ("4320p (8K Ultra HD)", "4320", True, False),
-            ("2160p (4K Ultra HD)", "2160", True, False),
-            ("1440p (2K Quad HD)", "1440", True, False),
-            ("1080p (Full HD)", "1080", True, False),
-            ("720p  (HD Standard)", "720", True, False),
-            ("480p  (SD)", "480", True, False),
-            ("360p  (Low)", "360", True, False),
+            ("Auto   (Kualitas Maksimal / Best - 4K/8K)", "best", True, False),
+            ("4320p  (8K Ultra HD)", "4320", True, False),
+            ("2160p  (4K Ultra HD)", "2160", True, False),
+            ("1440p  (2K Quad HD)", "1440", True, False),
+            ("1080p  (Full HD)", "1080", True, False),
+            ("720p   (HD Standard)", "720", True, False),
+            ("480p   (SD)", "480", True, False),
+            ("360p   (Low)", "360", True, False),
             (t("back_simple"), "back", False, True)
         ]
         chosen_res = select_menu_option("Select Resolution", res_opts)

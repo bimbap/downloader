@@ -170,7 +170,7 @@ def get_video_format_selector(resolution: str | None, codec: str | None = None) 
     elif c == "vp9":
         vcodec_filter = "[vcodec^=vp9]"
 
-    if not resolution:
+    if not resolution or str(resolution).lower() in ("best", "max", "auto"):
         if vcodec_filter:
             return f"bestvideo{vcodec_filter}+bestaudio/bestvideo+bestaudio/best"
         return "bestvideo+bestaudio/best"
