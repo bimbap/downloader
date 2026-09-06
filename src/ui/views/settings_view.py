@@ -40,9 +40,9 @@ def handle_video_settings():
         ]
 
         options = [
-            (f"{'Target Resolution':<34} [{current_res}p] ⚙", "resolution", True, False),
-            (f"{'Preferred Video Codec':<34} [{current_codec.upper()}] ⚙", "codec", True, False),
-            (f"{'Video Container':<34} [{current_container.upper()} -> .{eff_container}] ⚙", "container", True, False),
+            (f"{'Target Resolution':<34} [{current_res}p]", "resolution", True, False),
+            (f"{'Preferred Video Codec':<34} [{current_codec.upper()}]", "codec", True, False),
+            (f"{'Video Container':<34} [{current_container.upper()} -> .{eff_container}]", "container", True, False),
             (f"{'Force Upscale Resolution':<34} [{upscale_disp}]", "toggle_upscale", True, False),
             (t("back_simple"), "back", False, True)
         ]
@@ -114,8 +114,8 @@ def handle_audio_settings():
         ]
 
         options = [
-            (f"{'Audio Format':<34} [{current_fmt.upper()}] ⚙", "format", True, False),
-            (f"{'Target Bitrate':<34} [{current_br}k] ⚙", "bitrate", True, False),
+            (f"{'Audio Format':<34} [{current_fmt.upper()}]", "format", True, False),
+            (f"{'Target Bitrate':<34} [{current_br}k]", "bitrate", True, False),
             (t("back_simple"), "back", False, True)
         ]
 
@@ -168,7 +168,7 @@ def handle_storage_settings():
         ]
 
         options = [
-            (f"{'Output Folder Path':<34} [{out_dir}] ⚙", "change_dir", True, False),
+            (f"{'Output Folder Path':<34} [{out_dir}]", "change_dir", True, False),
             (f"{'Organize by Platform':<34} [{'ON' if org_platform else 'OFF'}]", "toggle_org", True, False),
             (f"{'Organize by Media Category':<34} [{'ON' if org_category else 'OFF'}]", "toggle_cat", True, False),
             (t("back_simple"), "back", False, True)
@@ -206,13 +206,13 @@ def handle_language_settings():
     curr_idx = 0 if curr == "id" else 1
 
     lang_opts = [
-        ("Bahasa Indonesia 🇮🇩 (Indonesian)", "id", True, False),
-        ("English 🇬🇧 (International)", "en", True, False),
+        ("Bahasa Indonesia (Indonesian)", "id", True, False),
+        ("English (International)", "en", True, False),
         (t("back_simple"), "back", False, True),
     ]
 
     header = [
-        f"Active: {BOLD_GREEN}{'Bahasa Indonesia 🇮🇩' if curr == 'id' else 'English 🇬🇧'}{NC}",
+        f"Active: {BOLD_GREEN}{'Bahasa Indonesia' if curr == 'id' else 'English'}{NC}",
         f"{DIM}Select your preferred application language / Pilih bahasa tampilan aplikasi.{NC}"
     ]
 
@@ -233,12 +233,12 @@ def handle_cookie_settings():
 
     cookie_opts = [
         ("None (Default / No Cookies)", "none", True, False),
-        ("Google Chrome 🌐", "chrome", True, False),
-        ("Mozilla Firefox 🦊", "firefox", True, False),
-        ("Microsoft Edge 🌀", "edge", True, False),
-        ("Brave Browser 🦁", "brave", True, False),
-        ("Opera / Opera GX 🎭", "opera", True, False),
-        ("Vivaldi 🔴", "vivaldi", True, False),
+        ("Google Chrome", "chrome", True, False),
+        ("Mozilla Firefox", "firefox", True, False),
+        ("Microsoft Edge", "edge", True, False),
+        ("Brave Browser", "brave", True, False),
+        ("Opera / Opera GX", "opera", True, False),
+        ("Vivaldi", "vivaldi", True, False),
         (t("back_simple"), "back", False, True),
     ]
 
@@ -293,7 +293,7 @@ def run_settings_view():
         lang = cfg.get("language", "id")
         cookies = cfg.get("browser_cookies", "none")
 
-        lang_disp = "🇮🇩 ID" if lang == "id" else "🇬🇧 EN"
+        lang_disp = "ID" if lang == "id" else "EN"
         cookies_disp = cookies.upper() if cookies != "none" else "OFF"
 
         header = [
@@ -302,14 +302,14 @@ def run_settings_view():
         ]
 
         options = [
-            (f"{t('setting_video'):<38} [{res}p / {codec.upper()}] ⚙", "video", True, False),
-            (f"{t('setting_audio'):<38} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k] ⚙", "audio", True, False),
-            (f"{t('setting_style'):<38} [{style.upper()}] ⚙", "style", True, False),
-            (f"{t('setting_storage'):<38} ⚙", "storage", True, False),
-            (f"{t('setting_language'):<38} [{lang_disp}] ⚙", "language", True, False),
-            (f"{t('setting_cookies'):<38} [{cookies_disp}] ⚙", "cookies", True, False),
-            (f"{t('setting_clean'):<38} 🧹", "clean", True, False),
-            (f"{t('setting_reset'):<38} 🔄", "reset", True, False),
+            (f"{t('setting_video'):<38} [{res}p / {codec.upper()}]", "video", True, False),
+            (f"{t('setting_audio'):<38} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k]", "audio", True, False),
+            (f"{t('setting_style'):<38} [{style.upper()}]", "style", True, False),
+            (f"{t('setting_storage'):<38}", "storage", True, False),
+            (f"{t('setting_language'):<38} [{lang_disp}]", "language", True, False),
+            (f"{t('setting_cookies'):<38} [{cookies_disp}]", "cookies", True, False),
+            (f"{t('setting_clean'):<38}", "clean", True, False),
+            (f"{t('setting_reset'):<38}", "reset", True, False),
             (t("back"), "back", False, True)
         ]
 

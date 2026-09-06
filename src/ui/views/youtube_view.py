@@ -40,8 +40,8 @@ def run_youtube_download_flow(item: MediaItem):
         pl_mode = cfg.get("playlist_mode", "ask")
         if pl_mode == "ask":
             pl_options = [
-                (f"Download Full Playlist ({len(item.items)} videos) 📋", "playlist", True, False),
-                ("Download First Video Only 🎬", "single", True, False),
+                (f"Download Full Playlist ({len(item.items)} videos)", "playlist", True, False),
+                ("Download First Video Only", "single", True, False),
                 ("Cancel", "cancel", False, True)
             ]
             choice = select_menu_option(
@@ -66,16 +66,16 @@ def run_youtube_download_flow(item: MediaItem):
     force_upscale = cfg.get("force_upscale", False)
 
     upscale_tag = f" + Upscale {target_res}p" if force_upscale else ""
-    default_video_label = f"Video ({target_res}p | {target_codec.upper()} | .{eff_container}{upscale_tag}) 🎬"
+    default_video_label = f"Video ({target_res}p | {target_codec.upper()} | .{eff_container}{upscale_tag})"
     audio_fmt = cfg.get("audio_format", "mp3")
     audio_br = cfg.get("audio_bitrate", "320")
-    default_audio_label = f"Audio ({audio_fmt.upper()} @ {audio_br}k) 🎵"
+    default_audio_label = f"Audio ({audio_fmt.upper()} @ {audio_br}k)"
 
     format_options = [
         (default_video_label, "video_default", True, False, 1),
-        (f"Video (Pick Custom Resolution) ⚙", "video_custom", True, False, 2),
+        ("Video (Pick Custom Resolution)", "video_custom", True, False, 2),
         (default_audio_label, "audio_default", True, False, 1),
-        ("Audio (Original Stream / Best) 🎧", "audio_best", True, False, 2),
+        ("Audio (Original Stream / Best)", "audio_best", True, False, 2),
         ("Cancel", "cancel", False, True)
     ]
 

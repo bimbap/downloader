@@ -1,6 +1,6 @@
 {
   "language": "id",
-  "browser_cookies": "none",
+  "browser_cookies": "chrome",
   "filename_style": "basic",
   "default_resolution": "1080",
   "video_codec": "h264",
