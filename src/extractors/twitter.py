@@ -68,10 +68,12 @@ class TwitterExtractor(BaseExtractor):
                     has_video = any(m.get("type") in ("video", "gif") for m in extended)
                     has_image = any(m.get("type") == "image" for m in extended)
 
-                    if has_video:
+                    if len(extended) > 1:
+                        media_type = "gallery"
+                    elif has_video:
                         media_type = "video"
                     elif has_image:
-                        media_type = "gallery" if len(extended) > 1 else "image"
+                        media_type = "image"
 
                     for idx, m_obj in enumerate(extended, 1):
                         m_type = m_obj.get("type", "image")
@@ -80,9 +82,10 @@ class TwitterExtractor(BaseExtractor):
                         if m_type == "image" and "pbs.twimg.com" in m_url and not m_url.endswith(":orig"):
                             m_url = f"{m_url}:orig"
                         media_items.append({
-                            "type": m_type,
-                            "url": m_url,
                             "index": idx,
+                            "type": m_type,
+                            "media_type": m_type,
+                            "url": m_url,
                             "thumbnail": m_obj.get("thumbnail_url"),
                         })
 
@@ -106,13 +109,43 @@ class TwitterExtractor(BaseExtractor):
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
                     if info:
+                        entries = info.get("entries") or []
+                        media_items = []
+                        if entries:
+                            for idx, entry in enumerate(entries, 1):
+                                if not entry:
+                                    continue
+                                vformats = entry.get("formats") or []
+                                thumbs = entry.get("thumbnails") or []
+                                is_vid = bool(vformats)
+                                best_u = None
+                                if is_vid:
+                                    v_cands = [f for f in vformats if f.get("vcodec") not in (None, "none")]
+                                    prog = [f for f in v_cands if f.get("acodec") not in (None, "none")]
+                                    best_f = prog[-1] if prog else (v_cands[-1] if v_cands else vformats[-1])
+                                    best_u = best_f.get("url")
+                                else:
+                                    best_u = thumbs[-1].get("url") if thumbs else entry.get("url")
+                                media_items.append({
+                                    "index": idx,
+                                    "type": "video" if is_vid else "image",
+                                    "media_type": "video" if is_vid else "image",
+                                    "url": best_u,
+                                    "thumbnail": thumbs[-1].get("url") if thumbs else entry.get("thumbnail")
+                                })
+
+                        media_type = "gallery" if len(media_items) > 1 else (
+                            media_items[0]["media_type"] if media_items else ("video" if (info.get("formats") or info.get("vcodec")) else "image")
+                        )
+
                         return MediaItem(
                             platform="twitter",
                             url=url,
                             title=info.get("title", f"Tweet {tweet_id}"),
                             author=info.get("uploader", f"@{user}"),
-                            media_type="video",
+                            media_type=media_type,
                             duration=float(info.get("duration") or 0.0),
+                            items=media_items,
                             raw_info=info
                         )
             except Exception:
@@ -133,34 +166,42 @@ class TwitterExtractor(BaseExtractor):
 
         downloaded_files = []
 
-        # If it's a gallery of images or single image:
-        if item.media_type in ("image", "gallery") and item.items:
-            photo_dir = get_download_path(options.get("output_dir"), platform="x", media_type="photo")
+        # 1. Multi-item / slide download (carousel, multiple photos/videos)
+        if item.items and len(item.items) > 1:
             selected_indices = options.get("selected_indices")
             targets = [
                 itm for itm in item.items
                 if (not selected_indices or itm.get("index") in selected_indices)
             ]
-            success_count = 0
             for itm in targets:
                 m_url = itm.get("url")
                 if not m_url:
                     continue
-                ext = ".jpg"
-                if ".png" in m_url: ext = ".png"
-                elif ".webp" in m_url: ext = ".webp"
-                
-                idx_str = f"_slide_{itm['index']}" if len(item.items) > 1 else ""
-                clean_title = re.sub(r'[\\/*?:"<>|]', "", item.title[:40]).strip()
-                filename = f"@{user}_{tweet_id}{idx_str}_{clean_title}{ext}".strip() if clean_title else f"@{user}_{tweet_id}{idx_str}{ext}"
-                dest = photo_dir / filename
+                m_type = itm.get("media_type") or itm.get("type", "image")
+                is_vid = m_type in ("video", "gif")
+                category = "video" if is_vid else "photo"
 
-                print(f"  Downloading Image {itm['index']}/{len(item.items)}...")
+                if is_vid:
+                    ext = ".mp4"
+                elif ".png" in m_url:
+                    ext = ".png"
+                elif ".webp" in m_url:
+                    ext = ".webp"
+                else:
+                    ext = ".jpg"
+
+                target_dir = get_download_path(options.get("output_dir"), platform="x", media_type=category)
+                idx = itm.get("index", 1)
+                filename = f"@{user}_{tweet_id}_slide_{idx}{ext}"
+                dest = target_dir / filename
+
+                disp_type = "Video" if is_vid else "Image"
+                print(f"  Downloading Slide {idx}/{len(item.items)} ({disp_type})...")
                 if download_file_with_progress(m_url, dest):
                     downloaded_files.append(dest)
-                    success_count += 1
 
-            return success_count > 0, downloaded_files
+            if downloaded_files:
+                return True, downloaded_files
 
         # If it's a video/gif: prefer yt-dlp for best quality
         vid_dir = get_download_path(options.get("output_dir"), platform="x", media_type="video")
