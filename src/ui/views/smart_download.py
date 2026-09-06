@@ -117,25 +117,23 @@ def run_smart_download(prefilled_url: str | None = None):
         run_youtube_download_flow(item)
         return
 
-    # Social media (X, Instagram, Threads) direct confirmation
-    clear_screen()
+    # Social media (X, Instagram, Threads) confirmation flow
+    from core.config import get_download_path
+    target_out = get_download_path(platform=item.platform)
     platform_name = {
         "twitter": "X / Twitter",
         "instagram": "Instagram",
         "threads": "Threads",
     }.get(item.platform, item.platform.capitalize())
 
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{BOLD_YELLOW}Downloading Media from {platform_name}{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
-    print(f"  Platform    : {BOLD_CYAN}{platform_name}{NC}")
-    print(f"  {t('author')}      : {BOLD_YELLOW}{item.author}{NC}")
-    print(f"  {t('caption')}     : {BOLD}{item.title}{NC}")
-    print(f"  {t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}")
-    if item.items:
-        print(f"  {t('items')} Count : {BOLD_GREEN}{len(item.items)} File(s){NC}")
-    print(f"  {t('source_url')}  : {DIM}{item.url}{NC}")
-    print("-" * 60 + "\n")
+    caption_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
+    info_header = [
+        f"Platform    : {BOLD_CYAN}{platform_name}{NC}",
+        f"{t('author')}      : {BOLD_YELLOW}{item.author}{NC}",
+        f"{t('caption')}     : {BOLD}{caption_disp}{NC}",
+        f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else ""),
+        f"{t('destination')} : {BOLD_BLUE}{target_out}{NC}"
+    ]
 
     download_opts = {}
     if len(item.items) > 1:
@@ -145,30 +143,32 @@ def run_smart_download(prefilled_url: str | None = None):
             (t("select_specific_slides"), "select", False, False),
             (t("cancel"), "cancel", False, True)
         ]
-        choice = select_menu_option(t("confirm"), options, clear_on_start=False)
+        choice = select_menu_option(f"{platform_name} – {t('ready_to_download')}", options, header_info=info_header)
         if choice == "cancel" or not choice:
             clear_screen()
             return
         elif choice == "select":
             selected = prompt_slide_selection(len(item.items))
             download_opts["selected_indices"] = selected
-            print(f"\n  {BOLD_CYAN}{t('downloading_slides', count=len(selected))}{NC}")
+            clear_screen()
+            print(f"\n  {BOLD_CYAN}{t('downloading_slides', count=len(selected))}{NC}\n")
         else:
             download_opts["selected_indices"] = list(range(1, len(item.items) + 1))
-            print(f"\n  {BOLD_CYAN}{t('downloading_all_slides', count=len(item.items))}{NC}")
+            clear_screen()
+            print(f"\n  {BOLD_CYAN}{t('downloading_all_slides', count=len(item.items))}{NC}\n")
     else:
         options = [
             (t("download_media"), "download", True, False),
             (t("cancel"), "cancel", False, True)
         ]
-        choice = select_menu_option(t("ready_to_download"), options, clear_on_start=False)
+        choice = select_menu_option(f"{platform_name} – {t('ready_to_download')}", options, header_info=info_header)
         if choice != "download":
             clear_screen()
             return
-        print(f"\n  {BOLD_CYAN}{t('downloading_media')}{NC}")
+        clear_screen()
+        print(f"\n  {BOLD_CYAN}{t('downloading_media')}{NC}\n")
 
     success, files = extractor.download(item, options=download_opts)
 
-    from core.config import get_download_path
-    target_out = files[0].parent if files else get_download_path(platform=item.platform)
-    render_download_result(success, files, target_out)
+    final_out = files[0].parent if files else target_out
+    render_download_result(success, files, final_out)

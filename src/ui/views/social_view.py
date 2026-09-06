@@ -90,19 +90,14 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
         clear_screen()
         return
 
-    clear_screen()
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{color_code}{platform_title} – {t('ready_to_download')}{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
-    print(f"  {t('author')}      : {BOLD_YELLOW}{item.author}{NC}")
-    print(f"  {t('caption')}     : {BOLD}{item.title}{NC}")
-    print(f"  {t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}")
-    if item.items:
-        print(f"  {t('items')} Count : {BOLD_GREEN}{len(item.items)} File(s){NC}")
     out_dir = get_download_path(platform=platform_key)
-    print(f"  {t('destination')} : {BOLD_BLUE}{out_dir}{NC}")
-    print(f"  {t('source_url')}  : {DIM}{item.url}{NC}")
-    print("-" * 60 + "\n")
+    caption_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
+    info_header = [
+        f"{t('author')}      : {BOLD_YELLOW}{item.author}{NC}",
+        f"{t('caption')}     : {BOLD}{caption_disp}{NC}",
+        f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else ""),
+        f"{t('destination')} : {BOLD_BLUE}{out_dir}{NC}"
+    ]
 
     download_opts = {}
     if len(item.items) > 1:
@@ -111,27 +106,30 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
             (t("select_specific_slides"), "select", False, False),
             (t("cancel"), "cancel", False, True)
         ]
-        choice = select_menu_option(t("confirm"), options, clear_on_start=False)
+        choice = select_menu_option(f"{platform_title} – {t('ready_to_download')}", options, header_info=info_header)
         if choice == "cancel" or not choice:
             clear_screen()
             return
         elif choice == "select":
             selected = prompt_slide_selection(len(item.items))
             download_opts["selected_indices"] = selected
-            print(f"\n  {BOLD_CYAN}{t('downloading_slides', count=len(selected))}{NC}")
+            clear_screen()
+            print(f"\n  {BOLD_CYAN}{t('downloading_slides', count=len(selected))}{NC}\n")
         else:
             download_opts["selected_indices"] = list(range(1, len(item.items) + 1))
-            print(f"\n  {BOLD_CYAN}{t('downloading_all_slides', count=len(item.items))}{NC}")
+            clear_screen()
+            print(f"\n  {BOLD_CYAN}{t('downloading_all_slides', count=len(item.items))}{NC}\n")
     else:
         options = [
             (t("download_media"), "download", True, False),
             (t("cancel"), "cancel", False, True)
         ]
-        choice = select_menu_option(t("ready_to_download"), options, clear_on_start=False)
+        choice = select_menu_option(f"{platform_title} – {t('ready_to_download')}", options, header_info=info_header)
         if choice != "download":
             clear_screen()
             return
-        print(f"\n  {BOLD_CYAN}{t('downloading_media')}{NC}")
+        clear_screen()
+        print(f"\n  {BOLD_CYAN}{t('downloading_media')}{NC}\n")
 
     success, files = extractor.download(item, options=download_opts)
     target_out = files[0].parent if files else out_dir

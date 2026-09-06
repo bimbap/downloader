@@ -21,8 +21,7 @@ def select_menu_option(
     title: str,
     options: list[tuple],
     current_idx: int = 0,
-    header_info: list[str] | None = None,
-    clear_on_start: bool = True
+    header_info: list[str] | None = None
 ) -> str | None:
     """
     Interactive TUI menu navigator (arrow keys, 1-N digits, Enter/Space, q/ESC to back).
@@ -30,8 +29,7 @@ def select_menu_option(
     Includes dynamic sliding-window pagination to prevent terminal viewport overflow/scrolling.
     Supports non-selectable section headers (value="header").
     """
-    if clear_on_start:
-        clear_screen()
+    clear_screen()
 
     first_selectable = next((i for i, opt in enumerate(options) if opt[1] != "header"), 0)
     last_selectable = max((i for i, opt in enumerate(options) if opt[1] != "header"), default=0)

@@ -85,11 +85,16 @@ def show_cursor():
 
 
 def clear_screen():
-    """Clear screen without wiping scrollback or freezing Windows CMD."""
+    """Clear visible screen and terminal scrollback history buffer."""
     if os.name == "nt":
-        os.system("cls")
+        try:
+            os.system("cls")
+        except Exception:
+            pass
+        sys.stdout.write("\033[2J\033[3J\033[H")
+        sys.stdout.flush()
     else:
-        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.write("\033[2J\033[3J\033[H")
         sys.stdout.flush()
 
 
