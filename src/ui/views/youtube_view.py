@@ -24,6 +24,7 @@ from core.config import (
     resolve_video_container,
 )
 from core.ffmpeg_engine import FFMPEG_EXE
+from core.i18n import t
 from extractors.base import MediaItem
 from extractors.youtube import YouTubeExtractor
 from ui.menu import select_menu_option
@@ -42,7 +43,7 @@ def run_youtube_download_flow(item: MediaItem):
             pl_options = [
                 (f"Download Full Playlist ({len(item.items)} videos)", "playlist", True, False),
                 ("Download First Video Only", "single", True, False),
-                ("Cancel", "cancel", False, True)
+                (t("cancel"), "cancel", False, True)
             ]
             choice = select_menu_option(
                 f"Playlist Detected: {item.title[:45]}",
@@ -76,7 +77,7 @@ def run_youtube_download_flow(item: MediaItem):
         ("Video (Pick Custom Resolution)", "video_custom", True, False, 2),
         (default_audio_label, "audio_default", True, False, 1),
         ("Audio (Original Stream / Best)", "audio_best", True, False, 2),
-        ("Cancel", "cancel", False, True)
+        (t("cancel"), "cancel", False, True)
     ]
 
     title_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
@@ -105,7 +106,7 @@ def run_youtube_download_flow(item: MediaItem):
             ("720p  (HD Standard)", "720", True, False),
             ("480p  (SD)", "480", True, False),
             ("360p  (Low)", "360", True, False),
-            ("Back", "back", False, True)
+            (t("back_simple"), "back", False, True)
         ]
         chosen_res = select_menu_option("Select Resolution", res_opts)
         if chosen_res in ("back", None):
@@ -161,17 +162,17 @@ def run_youtube_view():
     extractor = YouTubeExtractor()
     is_valid, norm_url, reason = extractor.validate_url(url)
     if not is_valid:
-        print(f"\n  {BOLD_RED}✖ [ERROR]{NC} {reason}")
-        print(f"\n  {DIM}[Enter] Return to Menu{NC}")
+        print(f"\n  {BOLD_RED}✖ [{t('error')}]{NC} {reason}")
+        print(f"\n  {DIM}[Enter] {t('back_simple')}{NC}")
         get_key()
         clear_screen()
         return
 
-    print(f"\n  {DIM}🔍 Fetching YouTube metadata...{NC}")
+    print(f"\n  {DIM}{t('fetching_meta')}{NC}")
     item = extractor.fetch_metadata(norm_url)
     if not item:
-        print(f"\n  {BOLD_RED}✖ [ERROR]{NC} Could not retrieve video information.")
-        print(f"\n  {DIM}[Enter] Return to Menu{NC}")
+        print(f"\n  {BOLD_RED}✖ [{t('error')}]{NC} Could not retrieve video information.")
+        print(f"\n  {DIM}[Enter] {t('back_simple')}{NC}")
         get_key()
         clear_screen()
         return
