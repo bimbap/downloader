@@ -18,24 +18,38 @@ An ultra-fast, zero-lag interactive Terminal UI & CLI tool for downloading, conv
 
 ---
 
-## Quick Start
+## Installation
 
-### 1. Launch Interactive TUI
+Clone the repository and enter the directory:
 
 ```bash
-# Windows (CMD / PowerShell):
-.\run.bat
-
-# Linux / macOS / WSL / Git Bash:
-./dl.sh
-
-# Or directly via Python:
-python src/main.py
+git clone https://github.com/bimbap/downloader.git
+cd downloader
 ```
 
-> 💡 **Auto-Setup**: Launchers automatically verify and install dependencies (`yt-dlp`, `imageio-ffmpeg`, `requests`, `mutagen`) on first run.
+> 💡 **Zero-Config Setup**: Launchers automatically verify and install all dependencies (`yt-dlp`, `imageio-ffmpeg`, `requests`, `mutagen`) on first run. You can also run `pip install -r requirements.txt` manually.
 
-### 2. TUI Keyboard Shortcuts
+---
+
+## How to Download
+
+### Option 1: Interactive TUI (Recommended)
+
+1. **Launch the App**:
+   ```bash
+   # Windows (CMD / PowerShell):
+   .\run.bat
+
+   # Linux / macOS / WSL / Git Bash:
+   ./dl.sh
+   ```
+2. **Paste Media URL**: Select **`1. Universal Smart Download`** (or choose a specific platform) and paste your URL.
+3. **Select Format & Quality**:
+   - **Video**: Choose target resolution (Auto Maximal, 4K, 1080p, etc.) and preferred codec/container.
+   - **Audio**: Choose MP3, M4A, Opus, or WAV (cover art is automatically cropped to 1:1 square).
+4. **Done**: Downloaded files are saved to `downloads/<platform>/`. Press `[p]` to play immediately in your default player or `[o]` to open the destination folder!
+
+#### TUI Keyboard Shortcuts
 
 | Key | Action | Key | Action |
 | :--- | :--- | :--- | :--- |
@@ -45,20 +59,20 @@ python src/main.py
 
 ---
 
-## Headless CLI Usage
+### Option 2: Headless CLI (Fast & Scriptable)
 
-Run `src/main.py` directly for scripts, automated downloads, and CLI workflows:
+Download media directly in one command without entering the interactive menu:
 
 ```bash
-# Universal auto-download (best quality)
+# Auto-detect platform and download best quality
 python src/main.py "https://x.com/user/status/123456789"
 python src/main.py "https://www.instagram.com/reel/C8..."
 python src/main.py "https://www.threads.net/@user/post/C8..."
 
-# YouTube 1080p MP4 (H.264)
+# YouTube: 1080p MP4 (H.264)
 python src/main.py "https://youtu.be/dQw4w9WgXcQ" -r 1080 -c h264 --container mp4
 
-# YouTube Audio 320 kbps MP3 with album art
+# YouTube: 320 kbps MP3 with album art
 python src/main.py "https://youtu.be/dQw4w9WgXcQ" -a --audio-format mp3 -b 320
 
 # Download and upscale to 1440p (2K) via GPU
@@ -68,7 +82,7 @@ python src/main.py "https://youtu.be/dQw4w9WgXcQ" -r 1440 -u
 python src/main.py "https://www.youtube.com/playlist?list=PL..." -p
 ```
 
-### CLI Flags Reference
+#### CLI Flags Reference
 
 | Option | Flag | Values / Default | Description |
 | :--- | :--- | :--- | :--- |
