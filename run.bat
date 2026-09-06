@@ -4,7 +4,7 @@ set PYTHONIOENCODING=utf-8
 set SCRIPT_DIR=%~dp0
 
 rem Check if dependencies are installed
-python -c "import yt_dlp, imageio_ffmpeg" >nul 2>&1
+python -c "import yt_dlp, imageio_ffmpeg, requests" >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
     echo [!] First-time setup: Missing dependencies detected.
@@ -24,8 +24,4 @@ if %errorlevel% neq 0 (
     echo.
 )
 
-if "%~1"=="" (
-    python "%SCRIPT_DIR%src\tui.py"
-) else (
-    python "%SCRIPT_DIR%src\downloader.py" %*
-)
+python "%SCRIPT_DIR%src\main.py" %*
