@@ -347,3 +347,38 @@ class FFmpegUpscalePP(FFmpegPostProcessor):
                     pass
 
         return [], info
+
+
+class FFmpegSquareCropThumbnailPP(FFmpegPostProcessor):
+    """
+    Crops 16:9 video thumbnails to 1:1 square album art for Topic & Music tracks.
+    Eliminates black letterbox/pillarbox bars so media players display pure, professional album artwork.
+    """
+    def __init__(self, downloader=None, force_square: bool = False):
+        super().__init__(downloader)
+        self.force_square = force_square
+
+    def run(self, info):
+        is_topic_or_music = (
+            self.force_square
+            or info.get("track")
+            or info.get("album")
+            or "Topic" in (info.get("uploader") or "")
+            or "Topic" in (info.get("channel") or "")
+            or (info.get("categories") and "Music" in info["categories"])
+        )
+        if not is_topic_or_music or not FFMPEG_EXE:
+            return [], info
+
+        for t in info.get("thumbnails") or []:
+            p = t.get("filepath")
+            if p and Path(p).exists():
+                cropped = f"{p}.sq.jpg"
+                cmd = [FFMPEG_EXE, "-y", "-i", p, "-vf", "crop=ih:ih", cropped]
+                try:
+                    res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    if res.returncode == 0 and Path(cropped).exists() and Path(cropped).stat().st_size > 0:
+                        Path(cropped).replace(p)
+                except Exception:
+                    pass
+        return [], info

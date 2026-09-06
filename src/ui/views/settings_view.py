@@ -110,14 +110,25 @@ def handle_audio_settings():
         cfg = load_config()
         current_fmt = cfg.get("audio_format", "mp3")
         current_br = str(cfg.get("audio_bitrate", "320"))
+        embed_thumb = cfg.get("embed_thumbnail", True)
+        crop_sq = cfg.get("crop_square_thumbnail", True)
+        embed_meta = cfg.get("embed_metadata", True)
+
+        thumb_disp = f"{BOLD_GREEN}ON{NC}" if embed_thumb else f"{DIM}OFF{NC}"
+        crop_disp = f"{BOLD_GREEN}ON{NC}" if crop_sq else f"{DIM}OFF{NC}"
+        meta_disp = f"{BOLD_GREEN}ON{NC}" if embed_meta else f"{DIM}OFF{NC}"
 
         header = [
-            f"Format : {BOLD_CYAN}{current_fmt.upper()}{NC}  |  Bitrate: {BOLD_YELLOW}{current_br} kbps{NC}"
+            f"Format : {BOLD_CYAN}{current_fmt.upper()}{NC}  |  Bitrate: {BOLD_YELLOW}{current_br} kbps{NC}  |  Cover Art: {thumb_disp}  |  Tags: {meta_disp}",
+            f"{DIM}Auto embed 1:1 album art (Topic/Music) & artist/album tags into audio files{NC}"
         ]
 
         options = [
             (f"{'Audio Format':<34} [{current_fmt.upper()}]", "format", True, False),
             (f"{'Target Bitrate':<34} [{current_br}k]", "bitrate", True, False),
+            (f"{'Embed Album Cover (Cover Art)':<34} [{'ON' if embed_thumb else 'OFF'}]", "toggle_thumb", True, False),
+            (f"{'Crop Square Cover (Topic/Music)':<34} [{'ON' if crop_sq else 'OFF'}]", "toggle_crop", True, False),
+            (f"{'Embed Song Metadata (ID3 Tags)':<34} [{'ON' if embed_meta else 'OFF'}]", "toggle_meta", True, False),
             (t("back_simple"), "back", False, True)
         ]
 
@@ -154,6 +165,21 @@ def handle_audio_settings():
                 cfg["audio_bitrate"] = b
                 save_config(cfg)
             curr_idx = 1
+
+        elif choice == "toggle_thumb":
+            cfg["embed_thumbnail"] = not cfg.get("embed_thumbnail", True)
+            save_config(cfg)
+            curr_idx = 2
+
+        elif choice == "toggle_crop":
+            cfg["crop_square_thumbnail"] = not cfg.get("crop_square_thumbnail", True)
+            save_config(cfg)
+            curr_idx = 3
+
+        elif choice == "toggle_meta":
+            cfg["embed_metadata"] = not cfg.get("embed_metadata", True)
+            save_config(cfg)
+            curr_idx = 4
 
 
 def handle_storage_settings():
@@ -298,14 +324,17 @@ def run_settings_view():
         lang_disp = "ID" if lang == "id" else "EN"
         cookies_disp = cookies.upper() if cookies != "none" else "OFF"
 
+        embed_thumb = cfg.get("embed_thumbnail", True)
+        thumb_tag = " (Cover: ON)" if embed_thumb else ""
+
         header = [
-            f"Video: {BOLD_GREEN}{res}p / {codec.upper()}{NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}  |  Naming: {BOLD_YELLOW}{style.upper()}{NC}",
+            f"Video: {BOLD_GREEN}{res}p / {codec.upper()}{NC}{(' (Upscale: ON)' if upscale else '')}  |  Audio: {BOLD_CYAN}{afmt.upper()}{NC}{thumb_tag}  |  Naming: {BOLD_YELLOW}{style.upper()}{NC}",
             f"Lang : {BOLD_CYAN}{lang_disp}{NC}  |  Cookies: {BOLD_YELLOW}{cookies_disp}{NC}"
         ]
 
         options = [
             (f"{t('setting_video'):<38} [{res}p / {codec.upper()}]", "video", True, False),
-            (f"{t('setting_audio'):<38} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k]", "audio", True, False),
+            (f"{t('setting_audio'):<38} [{afmt.upper()} @ {cfg.get('audio_bitrate', '320')}k{' + Cover' if embed_thumb else ''}]", "audio", True, False),
             (f"{t('setting_style'):<38} [{style.upper()}]", "style", True, False),
             (f"{t('setting_storage'):<38}", "storage", True, False),
             (f"{t('setting_language'):<38} [{lang_disp}]", "language", True, False),

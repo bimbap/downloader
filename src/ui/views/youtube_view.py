@@ -70,13 +70,16 @@ def run_youtube_download_flow(item: MediaItem):
     default_video_label = f"Video ({target_res}p | {target_codec.upper()} | .{eff_container}{upscale_tag})"
     audio_fmt = cfg.get("audio_format", "mp3")
     audio_br = cfg.get("audio_bitrate", "320")
-    default_audio_label = f"Audio ({audio_fmt.upper()} @ {audio_br}k)"
+    embed_cover = cfg.get("embed_thumbnail", True)
+    cover_tag = " + Cover Art" if embed_cover else ""
+    default_audio_label = f"Audio ({audio_fmt.upper()} @ {audio_br}k{cover_tag})"
+    best_audio_label = f"Audio (Original Stream / Best{cover_tag})"
 
     format_options = [
         (default_video_label, "video_default", True, False, 1),
         ("Video (Pick Custom Resolution)", "video_custom", True, False, 2),
         (default_audio_label, "audio_default", True, False, 1),
-        ("Audio (Original Stream / Best)", "audio_best", True, False, 2),
+        (best_audio_label, "audio_best", True, False, 2),
         (t("cancel"), "cancel", False, True)
     ]
 

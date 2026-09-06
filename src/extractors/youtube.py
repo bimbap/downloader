@@ -17,13 +17,15 @@ from core.config import (
     get_video_format_selector,
     get_cookie_opts,
 )
-from core.ffmpeg_engine import FFMPEG_EXE, FFmpegUpscalePP
+from core.ffmpeg_engine import FFMPEG_EXE, FFmpegUpscalePP, FFmpegSquareCropThumbnailPP
 from core.progress import create_ytdlp_progress_hook
 
 try:
     import yt_dlp
+    from yt_dlp.postprocessor.embedthumbnail import EmbedThumbnailPP
 except ImportError:
     yt_dlp = None
+    EmbedThumbnailPP = None
 
 
 class YouTubeExtractor(BaseExtractor):
@@ -202,28 +204,43 @@ class YouTubeExtractor(BaseExtractor):
         if FFMPEG_EXE:
             ydl_opts["ffmpeg_location"] = FFMPEG_EXE
 
+        embed_thumb = options.get("embed_thumbnail", cfg.get("embed_thumbnail", True)) and bool(FFMPEG_EXE)
+        embed_meta = options.get("embed_metadata", cfg.get("embed_metadata", True)) and bool(FFMPEG_EXE)
+        crop_square = options.get("crop_square_thumbnail", cfg.get("crop_square_thumbnail", True))
+
         is_audio_mode = mode in ("audio", "mp3", "m4a", "opus", "wav", "best")
         if is_audio_mode:
             actual_fmt = target_audio_fmt if mode == "audio" else mode
-            if actual_fmt == "best":
-                ydl_opts["format"] = "bestaudio/best"
-            elif actual_fmt == "wav":
-                ydl_opts.update({
-                    "format": "bestaudio/best",
-                    "postprocessors": [{
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "wav",
-                    }],
+            ydl_opts["format"] = "bestaudio/best"
+
+            postprocessors = []
+            if actual_fmt == "wav":
+                postprocessors.append({
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "wav",
                 })
-            else:
-                ydl_opts.update({
-                    "format": "bestaudio/best",
-                    "postprocessors": [{
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": actual_fmt,
-                        "preferredquality": target_audio_br,
-                    }],
+            elif actual_fmt != "best":
+                postprocessors.append({
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": actual_fmt,
+                    "preferredquality": target_audio_br,
                 })
+
+            if embed_meta:
+                postprocessors.append({
+                    "key": "FFmpegMetadata",
+                    "add_metadata": True,
+                })
+
+            if embed_thumb:
+                ydl_opts["writethumbnail"] = True
+                postprocessors.append({
+                    "key": "FFmpegThumbnailsConvertor",
+                    "format": "jpg",
+                })
+
+            if postprocessors:
+                ydl_opts["postprocessors"] = postprocessors
         else:  # video
             format_str = get_video_format_selector(resolution, target_codec)
             ydl_opts.update({
@@ -234,6 +251,12 @@ class YouTubeExtractor(BaseExtractor):
         downloaded_files = []
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                if is_audio_mode and embed_thumb:
+                    if crop_square:
+                        ydl.add_post_processor(FFmpegSquareCropThumbnailPP(ydl), when="post_process")
+                    if EmbedThumbnailPP:
+                        ydl.add_post_processor(EmbedThumbnailPP(ydl, already_have_thumbnail=False), when="post_process")
+
                 if is_upscale and mode == "video" and resolution and FFMPEG_EXE:
                     ydl.add_post_processor(
                         FFmpegUpscalePP(ydl, target_height=resolution, codec=target_codec),

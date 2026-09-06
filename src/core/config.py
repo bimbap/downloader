@@ -20,6 +20,9 @@ DEFAULT_CONFIG = {
     "video_container": "auto",            # auto, mp4, webm, mkv
     "audio_format": "mp3",                # mp3, m4a, opus, wav, best
     "audio_bitrate": "320",               # 320, 256, 192, 128, 96
+    "embed_thumbnail": True,              # True: embed album cover art into audio (MP3/M4A/FLAC/etc.)
+    "embed_metadata": True,               # True: embed track, artist, album, date tags into audio
+    "crop_square_thumbnail": True,        # True: crop 16:9 thumbnails to 1:1 square for Topic/music tracks
     "download_dir": "downloads",
     "organize_by_platform": True,         # downloads/youtube, downloads/x, etc.
     "organize_by_category": True,         # downloads/platform/photo, downloads/platform/video, etc.
@@ -43,6 +46,10 @@ def ensure_dependencies():
         import requests
     except ImportError:
         missing.append("requests")
+    try:
+        import mutagen
+    except ImportError:
+        missing.append("mutagen")
 
     if missing:
         import subprocess
