@@ -125,7 +125,6 @@ class TwitterExtractor(BaseExtractor):
         )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        out_dir = get_download_path(options.get("output_dir"), platform="x")
         m = self.TWITTER_REGEX.match(item.url)
         user = m.group(4) if m else "twitter"
         tweet_id = m.group(5) if m else "media"
@@ -134,6 +133,7 @@ class TwitterExtractor(BaseExtractor):
 
         # If it's a gallery of images or single image:
         if item.media_type in ("image", "gallery") and item.items:
+            photo_dir = get_download_path(options.get("output_dir"), platform="x", media_type="photo")
             selected_indices = options.get("selected_indices")
             targets = [
                 itm for itm in item.items
@@ -151,7 +151,7 @@ class TwitterExtractor(BaseExtractor):
                 idx_str = f"_slide_{itm['index']}" if len(item.items) > 1 else ""
                 clean_title = re.sub(r'[\\/*?:"<>|]', "", item.title[:40]).strip()
                 filename = f"@{user}_{tweet_id}{idx_str}_{clean_title}{ext}".strip() if clean_title else f"@{user}_{tweet_id}{idx_str}{ext}"
-                dest = out_dir / filename
+                dest = photo_dir / filename
 
                 print(f"  Downloading Image {itm['index']}/{len(item.items)}...")
                 if download_file_with_progress(m_url, dest):
@@ -161,9 +161,10 @@ class TwitterExtractor(BaseExtractor):
             return success_count > 0, downloaded_files
 
         # If it's a video/gif: prefer yt-dlp for best quality
+        vid_dir = get_download_path(options.get("output_dir"), platform="x", media_type="video")
         if yt_dlp:
             hook = create_ytdlp_progress_hook(item.title)
-            out_template = str(out_dir / f"%(uploader|{user})s_%(id)s_%(title).50s.%(ext)s")
+            out_template = str(vid_dir / f"@{user}_%(id)s_%(title).50s.%(ext)s")
             ydl_opts = {
                 "outtmpl": out_template,
                 "progress_hooks": [hook],
@@ -192,8 +193,10 @@ class TwitterExtractor(BaseExtractor):
             for itm in item.items:
                 m_url = itm.get("url")
                 if m_url:
-                    ext = ".mp4" if itm.get("type") in ("video", "gif") else ".jpg"
-                    dest = out_dir / f"@{user}_{tweet_id}{ext}"
+                    is_vid = itm.get("type") in ("video", "gif")
+                    ext = ".mp4" if is_vid else ".jpg"
+                    dest_dir = vid_dir if is_vid else get_download_path(options.get("output_dir"), platform="x", media_type="photo")
+                    dest = dest_dir / f"@{user}_{tweet_id}{ext}"
                     if download_file_with_progress(m_url, dest):
                         downloaded_files.append(dest)
             return len(downloaded_files) > 0, downloaded_files

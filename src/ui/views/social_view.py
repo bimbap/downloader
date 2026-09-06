@@ -133,7 +133,8 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
         print(f"\n  {BOLD_CYAN}Downloading media...{NC}")
 
     success, files = extractor.download(item, options=download_opts)
-    render_download_result(success, files, out_dir)
+    target_out = files[0].parent if files else out_dir
+    render_download_result(success, files, target_out)
 
 
 def run_twitter_view():

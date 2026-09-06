@@ -169,5 +169,5 @@ def run_smart_download(prefilled_url: str | None = None):
     success, files = extractor.download(item, options=download_opts)
 
     from core.config import get_download_path
-    out_dir = get_download_path(platform=item.platform)
-    render_download_result(success, files, out_dir)
+    target_out = files[0].parent if files else get_download_path(platform=item.platform)
+    render_download_result(success, files, target_out)

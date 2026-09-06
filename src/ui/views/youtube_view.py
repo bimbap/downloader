@@ -141,7 +141,8 @@ def run_youtube_download_flow(item: MediaItem):
     }
 
     success, files = extractor.download(item, opts)
-    render_download_result(success, files, out_dir)
+    target_out = files[0].parent if files else out_dir
+    render_download_result(success, files, target_out)
 
 
 def run_youtube_view():

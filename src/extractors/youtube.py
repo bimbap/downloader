@@ -180,7 +180,8 @@ class YouTubeExtractor(BaseExtractor):
         is_playlist = options.get("is_playlist", item.media_type == "playlist")
         is_upscale = options.get("force_upscale") if "force_upscale" in options else cfg.get("force_upscale", False)
 
-        output_dir = get_download_path(options.get("output_dir"), platform="youtube")
+        media_cat = "audio" if (mode in ("audio", "mp3", "m4a", "opus", "wav", "flac") or mode.startswith("audio")) else "video"
+        output_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type=media_cat)
         out_template = get_outtmpl(style, mode if mode != "audio" else target_audio_fmt, output_dir, platform="youtube")
 
         hook = create_ytdlp_progress_hook(item.title)

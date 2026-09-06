@@ -160,15 +160,17 @@ def handle_storage_settings():
         cfg = load_config()
         out_dir = cfg.get("download_dir", "downloads")
         org_platform = cfg.get("organize_by_platform", True)
+        org_category = cfg.get("organize_by_category", True)
 
         header = [
             f"Path     : {BOLD_CYAN}{out_dir}{NC}",
-            f"Folders  : {BOLD_GREEN if org_platform else DIM}{'Organized by Platform (youtube/, x/, etc.)' if org_platform else 'Single Unified Folder'}{NC}"
+            f"Platform : {BOLD_GREEN if org_platform else DIM}{'ON (youtube/, x/, etc.)' if org_platform else 'OFF'}{NC}  |  Format: {BOLD_YELLOW if org_category else DIM}{'ON (photo/, video/, audio/)' if org_category else 'OFF'}{NC}"
         ]
 
         options = [
             (f"{'Output Folder Path':<34} [{out_dir}] ⚙", "change_dir", True, False),
             (f"{'Organize by Platform':<34} [{'ON' if org_platform else 'OFF'}]", "toggle_org", True, False),
+            (f"{'Organize by Media Category':<34} [{'ON' if org_category else 'OFF'}]", "toggle_cat", True, False),
             ("Back to Settings", "back", False, True)
         ]
 
@@ -191,6 +193,11 @@ def handle_storage_settings():
             cfg["organize_by_platform"] = not cfg.get("organize_by_platform", True)
             save_config(cfg)
             curr_idx = 1
+
+        elif choice == "toggle_cat":
+            cfg["organize_by_category"] = not cfg.get("organize_by_category", True)
+            save_config(cfg)
+            curr_idx = 2
 
 
 def run_settings_view():

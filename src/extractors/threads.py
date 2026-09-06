@@ -100,7 +100,6 @@ class ThreadsExtractor(BaseExtractor):
             )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        out_dir = get_download_path(options.get("output_dir"), platform="threads")
         m = self.THREADS_REGEX.match(item.url)
         user = m.group(3) if m else "threads"
         post_id = m.group(4) if m else "media"
@@ -118,10 +117,13 @@ class ThreadsExtractor(BaseExtractor):
             if m_type == "image" and any(f.suffix == ".mp4" for f in downloaded_files):
                 continue
 
+            category = "video" if m_type == "video" else "photo"
+            dest_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=category)
+
             ext = ".mp4" if m_type == "video" else ".jpg"
             clean_title = re.sub(r'[\\/*?:"<>|]', "", item.title[:35]).strip()
             filename = f"@{user}_{post_id}_{clean_title}{ext}" if clean_title else f"@{user}_{post_id}{ext}"
-            dest = out_dir / filename
+            dest = dest_dir / filename
 
             print(f"  Downloading Threads {m_type.capitalize()}...")
             if download_file_with_progress(m_url, dest):

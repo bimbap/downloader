@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "audio_bitrate": "320",               # 320, 256, 192, 128, 96
     "download_dir": "downloads",
     "organize_by_platform": True,         # downloads/youtube, downloads/x, etc.
+    "organize_by_category": True,         # downloads/platform/photo, downloads/platform/video, etc.
     "playlist_mode": "ask",               # ask, single, playlist
     "force_upscale": False,               # False: native stream, True: upscale via GPU/FFmpeg if native < target
 }
@@ -80,8 +81,12 @@ def save_config(config: dict):
         json.dump(config, f, indent=2)
 
 
-def get_download_path(custom_dir: str | None = None, platform: str | None = None) -> Path:
-    """Resolve download path, optionally routed into platform-specific subfolders."""
+def get_download_path(
+    custom_dir: str | None = None,
+    platform: str | None = None,
+    media_type: str | None = None
+) -> Path:
+    """Resolve download path, optionally routed into platform and media category subfolders."""
     cfg = load_config()
     target_dir = custom_dir or cfg.get("download_dir", "downloads")
     p = Path(target_dir)
@@ -89,8 +94,22 @@ def get_download_path(custom_dir: str | None = None, platform: str | None = None
         p = BASE_DIR / target_dir
 
     if platform and cfg.get("organize_by_platform", True):
-        # Subfolder per platform: youtube, twitter, instagram, threads
-        p = p / platform.lower()
+        norm_plat = platform.lower()
+        if norm_plat in ("twitter", "x"):
+            norm_plat = "x"
+        p = p / norm_plat
+
+        if media_type and cfg.get("organize_by_category", True):
+            m = media_type.lower()
+            if m in ("audio", "mp3", "m4a", "opus", "wav", "flac", "ogg"):
+                category = "audio"
+            elif m in ("image", "photo", "gallery", "slide", "slides", "picture"):
+                category = "photo"
+            elif m in ("video", "reel", "reels", "gif", "tv", "clip", "playlist"):
+                category = "video"
+            else:
+                category = m
+            p = p / category
 
     p.mkdir(parents=True, exist_ok=True)
     return p
