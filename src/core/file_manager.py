@@ -77,6 +77,91 @@ def migrate_flat_downloads(root_dir: Path | None = None) -> int:
     return moved_count
 
 
+PLATFORM_META = {
+    "instagram": {
+        "name": "Instagram",
+        "icon": "📷",
+        "cats": {
+            "photo": ("Photo (Feed, Carousel)", "📷"),
+            "video": ("Video (Reels, Clips)", "🎬"),
+        }
+    },
+    "youtube": {
+        "name": "YouTube",
+        "icon": "🔴",
+        "cats": {
+            "video": ("Video (MP4, MKV, WebM)", "🎬"),
+            "audio": ("Audio (MP3, M4A, Opus)", "🎵"),
+        }
+    },
+    "x": {
+        "name": "X (Twitter)",
+        "icon": "🐦",
+        "cats": {
+            "photo": ("Photo (Images)", "📷"),
+            "video": ("Video (Clips, GIFs)", "🎬"),
+        }
+    },
+    "threads": {
+        "name": "Threads",
+        "icon": "🧵",
+        "cats": {
+            "photo": ("Photo", "📷"),
+            "video": ("Video", "🎬"),
+        }
+    },
+}
+
+
+def get_platform_hierarchy(root_dir: Path | None = None) -> list[dict]:
+    """
+    Returns only platforms and sub-categories that actually contain downloaded files.
+    Empty platforms and empty subfolders are filtered out completely.
+    """
+    migrate_flat_downloads(root_dir)
+    base = root_dir or get_download_path()
+    platforms_with_files = []
+
+    for p_key, p_info in PLATFORM_META.items():
+        p_dir = base / p_key
+        if not p_dir.exists():
+            continue
+
+        non_empty_cats = []
+        p_files = []
+        for c_key, (c_name, c_icon) in p_info["cats"].items():
+            c_dir = p_dir / c_key
+            if c_dir.exists():
+                files = scan_downloaded_files(c_dir)
+                if files:
+                    total_mb = sum(f.stat().st_size for f in files) / (1024 * 1024)
+                    non_empty_cats.append({
+                        "key": c_key,
+                        "name": c_name,
+                        "icon": c_icon,
+                        "path": c_dir,
+                        "files": files,
+                        "count": len(files),
+                        "size_mb": total_mb
+                    })
+                    p_files.extend(files)
+
+        if p_files:
+            total_p_mb = sum(f.stat().st_size for f in p_files) / (1024 * 1024)
+            platforms_with_files.append({
+                "key": p_key,
+                "name": p_info["name"],
+                "icon": p_info["icon"],
+                "path": p_dir,
+                "files": p_files,
+                "count": len(p_files),
+                "size_mb": total_p_mb,
+                "categories": non_empty_cats,
+            })
+
+    return platforms_with_files
+
+
 def get_category_overview(root_dir: Path | None = None) -> list[dict]:
     """
     Returns list of categories across all platforms with file count, size, and folder path.
