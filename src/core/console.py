@@ -85,17 +85,25 @@ def show_cursor():
 
 
 def clear_screen():
-    """Clear visible screen and terminal scrollback history buffer."""
+    """Clear visible screen and terminal scrollback history buffer across all environments."""
+    import shutil
+    # 1. Native clear binary if available (Git Bash / MSYS2 / macOS / Linux)
+    if shutil.which("clear"):
+        try:
+            os.system("clear")
+        except Exception:
+            pass
+
+    # 2. Native Windows CMD / PowerShell fallback
     if os.name == "nt":
         try:
             os.system("cls")
         except Exception:
             pass
-        sys.stdout.write("\033[2J\033[3J\033[H")
-        sys.stdout.flush()
-    else:
-        sys.stdout.write("\033[2J\033[3J\033[H")
-        sys.stdout.flush()
+
+    # 3. Universal ANSI escape: erase scrollback, cursor home, erase display
+    sys.stdout.write("\033[3J\033[H\033[2J")
+    sys.stdout.flush()
 
 
 def safe_input(prompt_text: str = "") -> str:

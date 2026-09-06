@@ -37,14 +37,10 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
         files = scan_downloaded_files(target_path)
         if not files:
             clear_screen()
-            print(f"{BOLD_CYAN}============================================================{NC}")
-            print(f"{BOLD_YELLOW}{icon} {title}{NC}")
-            print(f"{BOLD_CYAN}============================================================{NC}\n")
+            print(f"{BOLD_CYAN}── {BOLD_YELLOW}{title}{BOLD_CYAN} ─────────────────────────────{NC}")
             print(f"  {DIM}{t('folder')}:{NC} {BOLD_BLUE}{target_path}{NC}")
             print(f"  {BOLD_YELLOW}{t('no_files_category')}{NC}\n")
-            print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
-            print(f"  {DIM}[Enter/q] {t('back_simple')}  |  [o] {t('open_folder')}{NC}")
-            print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+            print(f"  {DIM}[Enter/q] {t('back_simple')}  |  [o] {t('open_folder')}{NC}\n")
 
             while True:
                 k = get_key()
@@ -59,7 +55,7 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
 
         total_size_mb = sum(f.stat().st_size for f in files) / (1024 * 1024)
         header = [
-            f"Location: {BOLD_YELLOW}{icon} {title}{NC}",
+            f"Location: {BOLD_YELLOW}{title}{NC}",
             f"{t('folder')}  : {BOLD_BLUE}{target_path}{NC}",
             f"{t('library')} : {BOLD_GREEN}{len(files)}{NC} {t('items')}  |  {t('size')}: {BOLD_YELLOW}{total_size_mb:.1f} MB{NC}"
         ]
@@ -78,7 +74,7 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
             options.append((t("delete_all_in_folder"), "delete_all", False, False))
         options.append((t("back_simple"), "back", False, True))
 
-        choice = select_menu_option(f"{icon} {title}", options, current_idx=curr_idx, header_info=header)
+        choice = select_menu_option(title, options, current_idx=curr_idx, header_info=header)
         if choice in ("back", None):
             clear_screen()
             break
@@ -89,9 +85,7 @@ def run_file_browser(target_path: Path, title: str, icon: str = "📁", can_dele
 
         elif choice == "delete_all":
             clear_screen()
-            print(f"{BOLD_RED}============================================================{NC}")
-            print(f"{BOLD_RED}{t('confirm_delete_title')}{NC}")
-            print(f"{BOLD_RED}============================================================{NC}\n")
+            print(f"{BOLD_RED}── {BOLD_RED}{t('confirm_delete_title')}{BOLD_RED} ─────────────────────────────{NC}\n")
             print(f"  {t('confirm_delete_msg', count=len(files))}")
             print(f"  {BOLD_CYAN}{title}{NC} ({BOLD_BLUE}{target_path}{NC})?\n")
             print(f"  {t('confirm_delete_prompt')}")
@@ -191,14 +185,10 @@ def run_manager_view():
 
         if not platforms:
             clear_screen()
-            print(f"{BOLD_CYAN}============================================================{NC}")
-            print(f"{BOLD_YELLOW}📁 {t('menu_manager')}{NC}")
-            print(f"{BOLD_CYAN}============================================================{NC}\n")
+            print(f"{BOLD_CYAN}── {BOLD_YELLOW}{t('menu_manager')}{BOLD_CYAN} ─────────────────────────────{NC}")
             print(f"  {DIM}{t('storage')}:{NC} {BOLD_BLUE}{root_dir}{NC}")
             print(f"  {BOLD_YELLOW}{t('no_files_found')}{NC}\n")
-            print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
-            print(f"  {DIM}[Enter/q] {t('back')}  |  [o] {t('open_folder')}{NC}")
-            print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+            print(f"  {DIM}[Enter/q] {t('back')}  |  [o] {t('open_folder')}{NC}\n")
 
             while True:
                 k = get_key()

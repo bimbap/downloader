@@ -63,14 +63,8 @@ def render_download_result(success: bool, downloaded_files: list[Path], output_d
 def run_smart_download(prefilled_url: str | None = None):
     """Prompts for any social media URL, auto-detects platform, and downloads."""
     clear_screen()
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{BOLD_YELLOW}{t('smart_title')}{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
-    print(f"  {DIM}Supported Platforms:{NC}")
-    print(f"  • {BOLD_RED}YouTube{NC}   (Videos up to 8K, Audio 320k, Playlists, GPU Upscale)")
-    print(f"  • {BOLD_CYAN}X/Twitter{NC} (Videos, GIFs, Full-Res Photo Galleries)")
-    print(f"  • {BOLD_MAGENTA}Instagram{NC} (Reels, Videos, Photo Carousels)")
-    print(f"  • {BOLD_YELLOW}Threads{NC}   (Videos, Photos)\n")
+    print(f"{BOLD_CYAN}── {BOLD_YELLOW}{t('smart_title')}{BOLD_CYAN} ─────────────────────────────{NC}")
+    print(f"  {DIM}Platforms: YouTube • X / Twitter • Instagram • Threads{NC}\n")
 
     if prefilled_url:
         url = prefilled_url.strip()

@@ -62,10 +62,8 @@ def prompt_slide_selection(total_slides: int) -> list[int]:
 def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, color_code: str, example_url: str):
     """Generic interactive flow for social media platforms."""
     clear_screen()
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{color_code}{platform_title}{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
-    print(f"  {DIM}{t('paste_link')} (e.g. {example_url}):{NC}")
+    print(f"{BOLD_CYAN}── {color_code}{platform_title}{BOLD_CYAN} ─────────────────────────────{NC}")
+    print(f"  {DIM}{t('paste_link')} (e.g. {example_url}):{NC}\n")
     url = safe_input("  URL: ").strip()
 
     if not url:
@@ -139,7 +137,7 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
 def run_twitter_view():
     run_platform_flow(
         TwitterExtractor,
-        "🐦 X / Twitter Media Downloader",
+        "X / Twitter Downloader",
         "x",
         BOLD_CYAN,
         "https://x.com/username/status/123..."
@@ -149,7 +147,7 @@ def run_twitter_view():
 def run_instagram_view():
     run_platform_flow(
         InstagramExtractor,
-        "📷 Instagram Reels & Photo Downloader",
+        "Instagram Downloader",
         "instagram",
         BOLD_MAGENTA,
         "https://www.instagram.com/reel/CODE/ or /p/CODE/"
@@ -159,7 +157,7 @@ def run_instagram_view():
 def run_threads_view():
     run_platform_flow(
         ThreadsExtractor,
-        "🧵 Threads Video & Photo Downloader",
+        "Threads Downloader",
         "threads",
         BOLD_YELLOW,
         "https://www.threads.net/@user/post/ID"

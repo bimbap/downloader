@@ -120,10 +120,8 @@ def run_youtube_download_flow(item: MediaItem):
 
     # Banner display before download
     clear_screen()
-    banner = "Downloading Playlist with yt-dlp" if is_playlist else "Downloading Media with yt-dlp"
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{BOLD_YELLOW}{banner}{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
+    banner = "Downloading Playlist" if is_playlist else "Downloading YouTube Media"
+    print(f"{BOLD_CYAN}── {BOLD_YELLOW}{banner}{BOLD_CYAN} ─────────────────────────────{NC}\n")
     print(f"  Title           : {BOLD_YELLOW}{item.title}{NC}")
     print(f"  Author          : {DIM}{item.author}{NC}")
     print(f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC} ({chosen_res}p)" if mode == "video" else f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC}")
@@ -149,10 +147,8 @@ def run_youtube_download_flow(item: MediaItem):
 def run_youtube_view():
     """Main entry for YouTube Downloader category."""
     clear_screen()
-    print(f"{BOLD_CYAN}============================================================{NC}")
-    print(f"{BOLD_RED}🔴 YouTube Media Downloader{NC}")
-    print(f"{BOLD_CYAN}============================================================{NC}\n")
-    print(f"  {DIM}Paste any YouTube Video, Shorts, or Playlist link:{NC}")
+    print(f"{BOLD_CYAN}── {BOLD_RED}YouTube Downloader{BOLD_CYAN} ─────────────────────────────{NC}")
+    print(f"  {DIM}Paste any YouTube Video, Shorts, or Playlist link:{NC}\n")
     url = safe_input("  URL: ").strip()
 
     if not url:
