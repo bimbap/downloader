@@ -11,6 +11,7 @@ from typing import Any
 from extractors.base import BaseExtractor, MediaItem
 from core.config import get_download_path, load_config
 from core.progress import create_ytdlp_progress_hook, download_file_with_progress
+from core.ffmpeg_engine import FFMPEG_EXE
 
 try:
     import yt_dlp
@@ -85,7 +86,16 @@ class InstagramExtractor(BaseExtractor):
                             vformats = entry.get("formats") or []
                             thumbs = entry.get("thumbnails") or []
                             is_video = bool(vformats)
-                            m_url = vformats[-1]["url"] if is_video else (thumbs[-1]["url"] if thumbs else None)
+
+                            if is_video:
+                                # Pick best video stream that has a video codec (never pick audio-only DASH stream)
+                                v_cands = [f for f in vformats if f.get("vcodec") not in (None, "none")]
+                                prog = [f for f in v_cands if f.get("acodec") not in (None, "none")]
+                                best_f = prog[-1] if prog else (v_cands[-1] if v_cands else vformats[-1])
+                                m_url = best_f.get("url")
+                            else:
+                                m_url = thumbs[-1]["url"] if thumbs else None
+
                             thumb_url = thumbs[-1]["url"] if thumbs else entry.get("thumbnail")
                             slide_items.append({
                                 "index": idx,
@@ -110,30 +120,42 @@ class InstagramExtractor(BaseExtractor):
                             raw_info=info
                         )
 
-                    # Single post / video
+                    # Single post: check if video or image
                     vformats = info.get("formats") or []
                     thumbs = info.get("thumbnails") or []
                     is_video = bool(vformats)
-                    m_url = vformats[-1]["url"] if is_video else (thumbs[-1]["url"] if thumbs else None)
-                    thumb_url = thumbs[-1]["url"] if thumbs else info.get("thumbnail")
-                    single_item = [{
-                        "index": 1,
-                        "id": info.get("id") or code,
-                        "media_type": "video" if is_video else "image",
-                        "url": m_url,
-                        "thumbnail": thumb_url,
-                    }]
-                    return MediaItem(
-                        platform="instagram",
-                        url=url,
-                        title=caption_snippet,
-                        author=author,
-                        media_type="video" if is_video else "image",
-                        duration=float(info.get("duration") or 0.0),
-                        thumbnail=thumb_url,
-                        items=single_item,
-                        raw_info=info
-                    )
+
+                    if is_video:
+                        # For single video/reel, leave items empty so download() delegates to yt-dlp with ffmpeg merger!
+                        return MediaItem(
+                            platform="instagram",
+                            url=url,
+                            title=caption_snippet,
+                            author=author,
+                            media_type="video",
+                            duration=float(info.get("duration") or 0.0),
+                            thumbnail=thumbs[-1]["url"] if thumbs else info.get("thumbnail"),
+                            items=[],
+                            raw_info=info
+                        )
+                    else:
+                        single_item = [{
+                            "index": 1,
+                            "id": info.get("id") or code,
+                            "media_type": "image",
+                            "url": thumbs[-1]["url"] if thumbs else None,
+                            "thumbnail": thumbs[-1]["url"] if thumbs else info.get("thumbnail"),
+                        }]
+                        return MediaItem(
+                            platform="instagram",
+                            url=url,
+                            title=caption_snippet,
+                            author=author,
+                            media_type="image",
+                            thumbnail=thumbs[-1]["url"] if thumbs else info.get("thumbnail"),
+                            items=single_item,
+                            raw_info=info
+                        )
             except Exception:
                 pass
 
@@ -170,7 +192,44 @@ class InstagramExtractor(BaseExtractor):
         downloaded_files = []
         selected_indices = options.get("selected_indices")
 
-        # 1. Download from extracted items (Carousels, Photos, Direct URLs)
+        # 1. Standalone Video / Reel -> ALWAYS use yt-dlp with bundled FFmpeg merger for crystal-clear video + audio!
+        is_carousel = item.items and len(item.items) > 1
+        if yt_dlp and item.media_type == "video" and not is_carousel:
+            vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video")
+            hook = create_ytdlp_progress_hook(item.title)
+            out_template = str(vid_dir / f"@{author_clean}_{code}.%(ext)s")
+            ydl_opts = {
+                "outtmpl": out_template,
+                "progress_hooks": [hook],
+                "quiet": True,
+                "noprogress": True,
+                "no_warnings": True,
+                "windowsfilenames": True,
+                "format": "bestvideo+bestaudio/best",
+            }
+            if FFMPEG_EXE:
+                ydl_opts["ffmpeg_location"] = FFMPEG_EXE
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(item.url, download=True)
+                    if info:
+                        if "requested_downloads" in info:
+                            for rd in info["requested_downloads"]:
+                                if rd.get("filepath"):
+                                    downloaded_files.append(Path(rd["filepath"]))
+                        elif info.get("filepath"):
+                            downloaded_files.append(Path(info["filepath"]))
+                        else:
+                            expected = vid_dir / f"@{author_clean}_{code}.mp4"
+                            if expected.exists():
+                                downloaded_files.append(expected)
+                if downloaded_files:
+                    return True, downloaded_files
+            except Exception:
+                pass
+
+        # 2. Download from extracted items (Carousels, Multi-photos, Slide galleries)
         if item.items:
             targets = [
                 itm for itm in item.items
@@ -200,34 +259,6 @@ class InstagramExtractor(BaseExtractor):
 
             if downloaded_files:
                 return True, downloaded_files
-
-        # 2. Standalone Video / Reel fallback via yt-dlp
-        if yt_dlp and item.media_type == "video":
-            vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video")
-            hook = create_ytdlp_progress_hook(item.title)
-            out_template = str(vid_dir / f"@{author_clean}_{code}_%(title).40s.%(ext)s")
-            ydl_opts = {
-                "outtmpl": out_template,
-                "progress_hooks": [hook],
-                "quiet": True,
-                "noprogress": True,
-                "no_warnings": True,
-                "windowsfilenames": True,
-            }
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(item.url, download=True)
-                    if info:
-                        if "requested_downloads" in info:
-                            for rd in info["requested_downloads"]:
-                                if rd.get("filepath"):
-                                    downloaded_files.append(Path(rd["filepath"]))
-                        elif info.get("filepath"):
-                            downloaded_files.append(Path(info["filepath"]))
-                if downloaded_files:
-                    return True, downloaded_files
-            except Exception:
-                pass
 
         # 3. OpenGraph fallback
         try:

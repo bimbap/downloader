@@ -11,6 +11,7 @@ from typing import Any
 from extractors.base import BaseExtractor, MediaItem
 from core.config import get_download_path, load_config
 from core.progress import create_ytdlp_progress_hook, download_file_with_progress
+from core.ffmpeg_engine import FFMPEG_EXE
 
 try:
     import yt_dlp
@@ -173,6 +174,8 @@ class TwitterExtractor(BaseExtractor):
                 "no_warnings": True,
                 "windowsfilenames": True,
             }
+            if FFMPEG_EXE:
+                ydl_opts["ffmpeg_location"] = FFMPEG_EXE
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(item.url, download=True)
