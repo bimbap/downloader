@@ -251,14 +251,15 @@ def delete_all_files(folder_path: Path | str | None = None) -> int:
     return deleted_count
 
 
-def clean_temp_files(root_dir: Path | None = None) -> tuple[int, int]:
+def clean_temp_files(root_dir: Path | None = None) -> tuple[int, int, list[dict]]:
     """
-    Cleans temporary and partial download files (.part, .ytdl, etc.).
-    Returns (cleaned_file_count, freed_bytes).
+    Cleans temporary and partial download files (.part, .ytdl, .temp_upscale_*, .sq.jpg, etc.).
+    Returns (cleaned_file_count, freed_bytes, list_of_cleaned_files).
     """
     base = root_dir or get_download_path()
     cleaned = 0
     freed = 0
+    deleted_files = []
 
     scan_dirs = [base]
     scratch_dir = base.parent / "scratch"
@@ -271,16 +272,33 @@ def clean_temp_files(root_dir: Path | None = None) -> tuple[int, int]:
             continue
         for f in d.rglob("*"):
             if f.is_file():
-                if f.suffix.lower() in temp_exts or ".part-" in f.name:
+                is_temp = (
+                    f.suffix.lower() in temp_exts
+                    or ".part-" in f.name
+                    or f.name.startswith(".temp_upscale_")
+                    or f.name.endswith(".sq.jpg")
+                )
+                if is_temp:
                     try:
                         sz = f.stat().st_size
+                        fname = f.name
+                        try:
+                            rel_name = str(f.relative_to(base))
+                        except Exception:
+                            rel_name = fname
+
                         f.unlink()
                         cleaned += 1
                         freed += sz
+                        deleted_files.append({
+                            "name": fname,
+                            "display": rel_name,
+                            "size": sz
+                        })
                     except Exception:
                         pass
 
-    return cleaned, freed
+    return cleaned, freed, deleted_files
 
 
 def reset_config():

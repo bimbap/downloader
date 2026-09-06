@@ -285,12 +285,20 @@ def handle_cookie_settings():
 def handle_clean_cache():
     """Purge temporary and broken partial files."""
     clear_screen()
-    cleaned_count, freed_bytes = clean_temp_files()
+    cleaned_count, freed_bytes, deleted_files = clean_temp_files()
     freed_mb = freed_bytes / (1024 * 1024)
 
     print(f"\n  {BOLD_CYAN}── {t('setting_clean')} ──────────────────────{NC}\n")
     if cleaned_count > 0:
-        print(f"  {BOLD_GREEN}{t('cache_cleaned', count=cleaned_count, size=freed_mb)}{NC}\n")
+        print(f"  {BOLD_GREEN}✔ {t('cache_cleaned', count=cleaned_count, size=freed_mb)}{NC}\n")
+        print(f"  {DIM}{t('cache_details')}{NC}")
+        for item in deleted_files[:20]:
+            item_sz_mb = item["size"] / (1024 * 1024)
+            sz_str = f"{item_sz_mb:.2f} MB" if item_sz_mb >= 0.1 else f"{item['size'] / 1024:.1f} KB"
+            print(f"    {BOLD_RED}✖{NC} {item['display']}  {DIM}({BOLD_YELLOW}{sz_str}{DIM}){NC}")
+        if len(deleted_files) > 20:
+            print(f"    {DIM}... and {len(deleted_files) - 20} more file(s){NC}")
+        print("")
     else:
         print(f"  {DIM}{t('cache_already_clean')}{NC}\n")
     safe_input(f"  {t('back_simple')} (Press Enter to continue)...")
