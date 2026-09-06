@@ -17,7 +17,7 @@ else
 fi
 
 # Auto-check and auto-install dependencies if missing
-if ! $PY_CMD -c "import yt_dlp, imageio_ffmpeg, requests" >/dev/null 2>&1; then
+if ! $PY_CMD -c "import yt_dlp, imageio_ffmpeg, requests, mutagen" >/dev/null 2>&1; then
     echo ""
     echo -e "\033[1;33m[!] First-time setup: Missing dependencies detected.\033[0m"
     echo -e "\033[1;36m[*] Installing requirements from requirements.txt...\033[0m"

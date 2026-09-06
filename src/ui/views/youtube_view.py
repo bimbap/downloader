@@ -66,8 +66,9 @@ def run_youtube_download_flow(item: MediaItem):
     eff_container = resolve_video_container(target_codec, target_container)
     force_upscale = cfg.get("force_upscale", False)
 
-    upscale_tag = f" + Upscale {target_res}p" if force_upscale else ""
-    default_video_label = f"Video ({target_res}p | {target_codec.upper()} | .{eff_container}{upscale_tag})"
+    res_tag = "Auto/Max" if target_res in ("best", "max", "auto") else f"{target_res}p"
+    upscale_tag = f" + Upscale {res_tag}" if force_upscale else ""
+    default_video_label = f"Video ({res_tag} | {target_codec.upper()} | .{eff_container}{upscale_tag})"
     audio_fmt = cfg.get("audio_format", "mp3")
     audio_br = cfg.get("audio_bitrate", "320")
     embed_cover = cfg.get("embed_thumbnail", True)
@@ -102,7 +103,7 @@ def run_youtube_download_flow(item: MediaItem):
         chosen_res = target_res
     elif choice == "video_custom":
         res_opts = [
-            ("Auto   (Kualitas Maksimal / Best - 4K/8K)", "best", True, False),
+            ("Auto   (Best / Maximal - 4K/8K)", "best", True, False),
             ("4320p  (8K Ultra HD)", "4320", True, False),
             ("2160p  (4K Ultra HD)", "2160", True, False),
             ("1440p  (2K Quad HD)", "1440", True, False),
@@ -128,7 +129,8 @@ def run_youtube_download_flow(item: MediaItem):
     print(f"{BOLD_CYAN}── {BOLD_YELLOW}{banner}{BOLD_CYAN} ─────────────────────────────{NC}\n")
     print(f"  Title           : {BOLD_YELLOW}{item.title}{NC}")
     print(f"  Author          : {DIM}{item.author}{NC}")
-    print(f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC} ({chosen_res}p)" if mode == "video" else f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC}")
+    res_disp = "Auto / Best" if chosen_res in ("best", "max", "auto") else f"{chosen_res}p"
+    print(f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC} ({res_disp})" if mode == "video" else f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC}")
     out_dir = get_download_path(platform="youtube")
     print(f"  Output Folder   : {BOLD_BLUE}{out_dir}{NC}")
     if FFMPEG_EXE:
