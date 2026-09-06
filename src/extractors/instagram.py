@@ -31,27 +31,28 @@ class InstagramExtractor(BaseExtractor):
     """Extractor for Instagram Reels, Videos, and Photo Carousels."""
 
     INSTAGRAM_REGEX = re.compile(
-        r"^(https?://)?(www\.)?instagram\.com/(p|reel|tv|reels)/([a-zA-Z0-9_-]+)"
+        r"(?:https?://)?(?:www\.)?instagram\.com/(?:share/)?(p|reel|tv|reels)/([a-zA-Z0-9_-]+)",
+        re.IGNORECASE
     )
 
     @classmethod
     def is_suitable(cls, url: str) -> bool:
-        return bool(cls.INSTAGRAM_REGEX.match(url.strip()))
+        return bool(cls.INSTAGRAM_REGEX.search(url.strip()))
 
     def validate_url(self, url: str) -> tuple[bool, str, str]:
         url = url.strip()
-        m = self.INSTAGRAM_REGEX.match(url)
+        m = self.INSTAGRAM_REGEX.search(url)
         if not m:
             return False, "", "Not a valid Instagram post/reel URL (expected format: https://www.instagram.com/p/CODE/ or /reel/CODE/)"
-        post_type = m.group(3)
-        code = m.group(4)
+        post_type = m.group(1).lower()
+        code = m.group(2)
         clean_url = f"https://www.instagram.com/{post_type}/{code}/"
         return True, clean_url, ""
 
     def fetch_metadata(self, url: str) -> MediaItem | None:
-        m = self.INSTAGRAM_REGEX.match(url.strip())
-        code = m.group(4) if m else "media"
-        post_type = "Reel" if (m and m.group(3) in ("reel", "reels")) else "Post"
+        m = self.INSTAGRAM_REGEX.search(url.strip())
+        code = m.group(2) if m else "media"
+        post_type = "Reel" if (m and m.group(1).lower() in ("reel", "reels")) else "Post"
 
         # 1. Primary extractor via custom PhotoInstagramIE
         if yt_dlp and PhotoInstagramIE:
@@ -182,8 +183,8 @@ class InstagramExtractor(BaseExtractor):
         )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        m = self.INSTAGRAM_REGEX.match(item.url)
-        code = m.group(4) if m else "ig_media"
+        m = self.INSTAGRAM_REGEX.search(item.url)
+        code = m.group(2) if m else "ig_media"
 
         raw_channel = item.raw_info.get("channel") or ""
         if not raw_channel and item.author.startswith("@"):

@@ -23,29 +23,30 @@ class TwitterExtractor(BaseExtractor):
     """Extractor for X / Twitter Videos, GIFs, and Photos."""
 
     TWITTER_REGEX = re.compile(
-        r"^(https?://)?(www\.)?(twitter\.com|x\.com)/([a-zA-Z0-9_]+)/status/([0-9]+)"
+        r"(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)/([a-zA-Z0-9_]+)/status/([0-9]+)",
+        re.IGNORECASE
     )
 
     @classmethod
     def is_suitable(cls, url: str) -> bool:
-        return bool(cls.TWITTER_REGEX.match(url.strip()))
+        return bool(cls.TWITTER_REGEX.search(url.strip()))
 
     def validate_url(self, url: str) -> tuple[bool, str, str]:
         url = url.strip()
-        m = self.TWITTER_REGEX.match(url)
+        m = self.TWITTER_REGEX.search(url)
         if not m:
             return False, "", "Not a valid X/Twitter post URL (expected format: https://x.com/username/status/123...)"
-        user = m.group(4)
-        tweet_id = m.group(5)
+        user = m.group(1)
+        tweet_id = m.group(2)
         clean_url = f"https://x.com/{user}/status/{tweet_id}"
         return True, clean_url, ""
 
     def fetch_metadata(self, url: str) -> MediaItem | None:
-        m = self.TWITTER_REGEX.match(url.strip())
+        m = self.TWITTER_REGEX.search(url.strip())
         if not m:
             return None
-        user = m.group(4)
-        tweet_id = m.group(5)
+        user = m.group(1)
+        tweet_id = m.group(2)
 
         # 1. Query VxTwitter API for comprehensive metadata
         api_url = f"https://api.vxtwitter.com/{user}/status/{tweet_id}"
@@ -160,9 +161,9 @@ class TwitterExtractor(BaseExtractor):
         )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        m = self.TWITTER_REGEX.match(item.url)
-        user = m.group(4) if m else "twitter"
-        tweet_id = m.group(5) if m else "media"
+        m = self.TWITTER_REGEX.search(item.url)
+        user = m.group(1) if m else "twitter"
+        tweet_id = m.group(2) if m else "media"
 
         downloaded_files = []
 

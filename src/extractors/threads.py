@@ -17,7 +17,7 @@ class ThreadsExtractor(BaseExtractor):
     """Extractor for Meta Threads Posts (Videos, Photos, and Carousels/Slides)."""
 
     THREADS_REGEX = re.compile(
-        r"(?:https?://)?(?:www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t)/([a-zA-Z0-9_-]+)",
+        r"(?:https?://)?(?:www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t|share)/([a-zA-Z0-9_-]+)",
         re.IGNORECASE
     )
 
@@ -43,10 +43,15 @@ class ThreadsExtractor(BaseExtractor):
         url = url.strip()
         m = self.THREADS_REGEX.search(url)
         if not m:
-            return False, "", "Not a valid Threads URL (expected format: https://www.threads.net/@user/post/ID or /t/ID)"
+            return False, "", "Not a valid Threads URL (expected format: https://www.threads.net/@user/post/ID, /t/ID, or /share/ID)"
         user = m.group(1)
         post_id = m.group(2)
-        clean_url = f"https://www.threads.net/@{user}/post/{post_id}" if user else f"https://www.threads.net/t/{post_id}"
+        if "/share/" in url.lower():
+            clean_url = f"https://www.threads.net/share/{post_id}/"
+        elif user:
+            clean_url = f"https://www.threads.net/@{user}/post/{post_id}"
+        else:
+            clean_url = f"https://www.threads.net/t/{post_id}"
         return True, clean_url, ""
 
     @staticmethod
@@ -76,7 +81,18 @@ class ThreadsExtractor(BaseExtractor):
         try:
             req = urllib.request.Request(url, headers=self.BROWSER_HEADERS)
             with urllib.request.urlopen(req, timeout=10) as resp:
+                final_url = resp.geturl()
                 raw_html = resp.read().decode("utf-8", "ignore")
+
+                # If redirected (e.g. from /share/ or /t/), re-extract user and post_id from final_url
+                final_m = self.THREADS_REGEX.search(final_url)
+                if final_m:
+                    if final_m.group(1):
+                        user = final_m.group(1)
+                    if final_m.group(2):
+                        post_id = final_m.group(2)
+
+                canonical_url = f"https://www.threads.net/@{user}/post/{post_id}" if user != "threads" else url
 
                 # 1. Primary: Extract from embedded data-sjs JSON blocks (full carousel/media support)
                 sjs_blocks = re.findall(
@@ -101,6 +117,7 @@ class ThreadsExtractor(BaseExtractor):
                     author_name = target_post.get("user", {}).get("username") or user
                     caption = (target_post.get("caption", {}).get("text", "") or "").strip()
                     title = caption.split("\n")[0][:60] if caption else f"Threads post by @{author_name}"
+                    item_url = f"https://www.threads.net/@{author_name}/post/{post_id}"
 
                     carousel = target_post.get("carousel_media") or []
                     slide_items = []
@@ -124,7 +141,7 @@ class ThreadsExtractor(BaseExtractor):
 
                         return MediaItem(
                             platform="threads",
-                            url=url,
+                            url=item_url,
                             title=title,
                             author=f"@{author_name}",
                             media_type="gallery",
@@ -137,7 +154,7 @@ class ThreadsExtractor(BaseExtractor):
                         v_url = target_post["video_versions"][0]["url"]
                         return MediaItem(
                             platform="threads",
-                            url=url,
+                            url=item_url,
                             title=title,
                             author=f"@{author_name}",
                             media_type="video",
@@ -149,7 +166,7 @@ class ThreadsExtractor(BaseExtractor):
                         i_url = target_post["image_versions2"]["candidates"][0]["url"]
                         return MediaItem(
                             platform="threads",
-                            url=url,
+                            url=item_url,
                             title=title,
                             author=f"@{author_name}",
                             media_type="image",
@@ -163,7 +180,7 @@ class ThreadsExtractor(BaseExtractor):
                         if gif_url:
                             return MediaItem(
                                 platform="threads",
-                                url=url,
+                                url=item_url,
                                 title=title,
                                 author=f"@{author_name}",
                                 media_type="image",
@@ -183,7 +200,7 @@ class ThreadsExtractor(BaseExtractor):
                     v_url = html.unescape(vid_match.group(1))
                     return MediaItem(
                         platform="threads",
-                        url=url,
+                        url=canonical_url,
                         title=title,
                         author=f"@{user}",
                         media_type="video",
@@ -193,7 +210,7 @@ class ThreadsExtractor(BaseExtractor):
                     i_url = html.unescape(img_match.group(1))
                     return MediaItem(
                         platform="threads",
-                        url=url,
+                        url=canonical_url,
                         title=title,
                         author=f"@{user}",
                         media_type="image",

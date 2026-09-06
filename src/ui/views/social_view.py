@@ -160,5 +160,5 @@ def run_threads_view():
         "Threads Downloader",
         "threads",
         BOLD_YELLOW,
-        "https://www.threads.net/@user/post/ID"
+        "https://www.threads.net/@user/post/ID or /share/ID"
     )
