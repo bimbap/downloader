@@ -1,3 +1,4 @@
+: << 'BATCH_OR_BASH'
 @echo off
 setlocal
 set PYTHONIOENCODING=utf-8
@@ -25,3 +26,11 @@ if %errorlevel% neq 0 (
 )
 
 python "%SCRIPT_DIR%src\main.py" %*
+exit /b %errorlevel%
+BATCH_OR_BASH
+
+# =============================================================================
+# Git Bash / Unix Shell Polyglot Fallback
+# =============================================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec bash "$SCRIPT_DIR/dl.sh" "$@"

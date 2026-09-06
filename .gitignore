@@ -13,3 +13,5 @@ __pycache__/
 # OS artifacts
 .DS_Store
 Thumbs.db
+nul
+scratch/

@@ -136,17 +136,37 @@ def run_smart_download(prefilled_url: str | None = None):
     print(f"  Target URL  : {DIM}{item.url}{NC}")
     print("-" * 60 + "\n")
 
-    options = [
-        ("Download Now 🚀", "download", True, False),
-        ("Cancel & Return to Menu", "cancel", False, True)
-    ]
-    choice = select_menu_option("Ready to Download?", options, clear_on_start=False)
-    if choice != "download":
-        clear_screen()
-        return
+    download_opts = {}
+    if len(item.items) > 1:
+        from ui.views.social_view import prompt_slide_selection
+        options = [
+            (f"Download All Slides ({len(item.items)} files) 🚀", "all", True, False),
+            ("Select Specific Slides 🎯", "select", False, False),
+            ("Cancel & Return to Menu", "cancel", False, True)
+        ]
+        choice = select_menu_option("Download Options", options, clear_on_start=False)
+        if choice == "cancel" or not choice:
+            clear_screen()
+            return
+        elif choice == "select":
+            selected = prompt_slide_selection(len(item.items))
+            download_opts["selected_indices"] = selected
+            print(f"\n  {BOLD_CYAN}Downloading {len(selected)} selected slide(s)...{NC}")
+        else:
+            download_opts["selected_indices"] = list(range(1, len(item.items) + 1))
+            print(f"\n  {BOLD_CYAN}Downloading all {len(item.items)} slides...{NC}")
+    else:
+        options = [
+            ("Download Now 🚀", "download", True, False),
+            ("Cancel & Return to Menu", "cancel", False, True)
+        ]
+        choice = select_menu_option("Ready to Download?", options, clear_on_start=False)
+        if choice != "download":
+            clear_screen()
+            return
+        print(f"\n  {BOLD_CYAN}Starting download...{NC}")
 
-    print(f"\n  {BOLD_CYAN}Starting download...{NC}")
-    success, files = extractor.download(item, options={})
+    success, files = extractor.download(item, options=download_opts)
 
     from core.config import get_download_path
     out_dir = get_download_path(platform=item.platform)

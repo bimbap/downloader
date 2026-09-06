@@ -134,8 +134,13 @@ class TwitterExtractor(BaseExtractor):
 
         # If it's a gallery of images or single image:
         if item.media_type in ("image", "gallery") and item.items:
+            selected_indices = options.get("selected_indices")
+            targets = [
+                itm for itm in item.items
+                if (not selected_indices or itm.get("index") in selected_indices)
+            ]
             success_count = 0
-            for itm in item.items:
+            for itm in targets:
                 m_url = itm.get("url")
                 if not m_url:
                     continue
@@ -143,9 +148,9 @@ class TwitterExtractor(BaseExtractor):
                 if ".png" in m_url: ext = ".png"
                 elif ".webp" in m_url: ext = ".webp"
                 
-                idx_str = f"_{itm['index']}" if len(item.items) > 1 else ""
+                idx_str = f"_slide_{itm['index']}" if len(item.items) > 1 else ""
                 clean_title = re.sub(r'[\\/*?:"<>|]', "", item.title[:40]).strip()
-                filename = f"@{user}_{tweet_id}{idx_str}_{clean_title}{ext}".strip()
+                filename = f"@{user}_{tweet_id}{idx_str}_{clean_title}{ext}".strip() if clean_title else f"@{user}_{tweet_id}{idx_str}{ext}"
                 dest = out_dir / filename
 
                 print(f"  Downloading Image {itm['index']}/{len(item.items)}...")
