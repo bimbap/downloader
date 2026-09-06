@@ -87,22 +87,29 @@ def show_cursor():
 def clear_screen():
     """Clear visible screen and terminal scrollback history buffer across all environments."""
     import shutil
-    # 1. Native clear binary if available (Git Bash / MSYS2 / macOS / Linux)
-    if shutil.which("clear"):
+    # 1. Native terminal clear command
+    is_bash_or_pty = ("MSYSTEM" in os.environ) or ("TERM" in os.environ) or ("MINGW_CHOST" in os.environ)
+    if is_bash_or_pty:
+        try:
+            os.system("clear")
+        except Exception:
+            pass
+    elif os.name == "nt":
+        try:
+            os.system("cls")
+        except Exception:
+            pass
+    else:
         try:
             os.system("clear")
         except Exception:
             pass
 
-    # 2. Native Windows CMD / PowerShell fallback
-    if os.name == "nt":
-        try:
-            os.system("cls")
-        except Exception:
-            pass
-
-    # 3. Universal ANSI escape: erase scrollback, cursor home, erase display
-    sys.stdout.write("\033[3J\033[H\033[2J")
+    # 2. Universal ANSI escape sequence:
+    # \033[H   : Cursor Home (row 1, col 1)
+    # \033[2J  : Clear entire visible screen
+    # \033[3J  : Clear terminal scrollback buffer (erases history above visible screen)
+    sys.stdout.write("\033[H\033[2J\033[3J")
     sys.stdout.flush()
 
 

@@ -78,7 +78,7 @@ def run_youtube_download_flow(item: MediaItem):
     format_options = [
         (default_video_label, "video_default", True, False, 1),
         ("Video (Pick Custom Resolution)", "video_custom", True, False, 2),
-        (default_audio_label, "audio_default", True, False, 1),
+        (default_audio_label, "audio_default", True, True, 1),
         (best_audio_label, "audio_best", True, False, 2),
         (t("cancel"), "cancel", False, True)
     ]

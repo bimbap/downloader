@@ -23,9 +23,18 @@ from core.progress import create_ytdlp_progress_hook
 try:
     import yt_dlp
     from yt_dlp.postprocessor.embedthumbnail import EmbedThumbnailPP
+
+    class SafeEmbedThumbnailPP(EmbedThumbnailPP):
+        """Safely embeds thumbnail into audio container without failing the download on unsupported containers."""
+        def run(self, info):
+            try:
+                return super().run(info)
+            except Exception:
+                return [], info
 except ImportError:
     yt_dlp = None
     EmbedThumbnailPP = None
+    SafeEmbedThumbnailPP = None
 
 
 class YouTubeExtractor(BaseExtractor):
@@ -184,9 +193,9 @@ class YouTubeExtractor(BaseExtractor):
         is_playlist = options.get("is_playlist", item.media_type == "playlist")
         is_upscale = options.get("force_upscale") if "force_upscale" in options else cfg.get("force_upscale", False)
 
-        media_cat = "audio" if (mode in ("audio", "mp3", "m4a", "opus", "wav", "flac") or mode.startswith("audio")) else "video"
+        media_cat = "audio" if (mode in ("audio", "mp3", "m4a", "opus", "wav", "flac", "best") or mode.startswith("audio")) else "video"
         output_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type=media_cat)
-        out_template = get_outtmpl(style, mode if mode != "audio" else target_audio_fmt, output_dir, platform="youtube")
+        out_template = get_outtmpl(style, target_audio_fmt if mode in ("audio", "best") else mode, output_dir, platform="youtube")
 
         hook = create_ytdlp_progress_hook(item.title)
 
@@ -219,7 +228,12 @@ class YouTubeExtractor(BaseExtractor):
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "wav",
                 })
-            elif actual_fmt != "best":
+            elif actual_fmt == "best":
+                postprocessors.append({
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "best",
+                })
+            else:
                 postprocessors.append({
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": actual_fmt,
@@ -254,8 +268,8 @@ class YouTubeExtractor(BaseExtractor):
                 if is_audio_mode and embed_thumb:
                     if crop_square:
                         ydl.add_post_processor(FFmpegSquareCropThumbnailPP(ydl), when="post_process")
-                    if EmbedThumbnailPP:
-                        ydl.add_post_processor(EmbedThumbnailPP(ydl, already_have_thumbnail=False), when="post_process")
+                    if SafeEmbedThumbnailPP:
+                        ydl.add_post_processor(SafeEmbedThumbnailPP(ydl, already_have_thumbnail=False), when="post_process")
 
                 if is_upscale and mode == "video" and resolution and FFMPEG_EXE:
                     ydl.add_post_processor(
