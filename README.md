@@ -130,4 +130,4 @@ downloader/
 
 ## License
 
-Personal and educational media downloading tool. Respect content creators' rights and platform terms of service.
+This project is licensed under the MIT License. See `/home/runner/work/downloader/downloader/LICENSE.md` for details.
