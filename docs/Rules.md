@@ -25,6 +25,10 @@
 - Do NOT use standard `input()` directly in interactive flows. Always use `safe_input()` from `src.core.console` to ensure QuickEdit mode is toggled cleanly and terminal cursor state is preserved.
 - Always call `clear_screen()` when transitioning between distinct view flows.
 
+### 1.5 Strict URL & HTTP(S) Transport Guard
+- **Host-Anchored Validation**: All extractor URL regexes MUST be anchored (`^...$`) and validate extracted IDs strictly so spoofed domains or path-traversal payloads are rejected.
+- **Safe HTTP Opener**: Never call raw `urllib.request.urlopen()` on untrusted or redirectable URLs. Always use `safe_urlopen()` from `src.core.progress` so `file://` and non-HTTP(S) schemes/redirects are blocked.
+
 ---
 
 ## 2. Code Conventions & Architectural Standards

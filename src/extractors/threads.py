@@ -10,14 +10,14 @@ from typing import Any
 
 from extractors.base import BaseExtractor, MediaItem
 from core.config import get_download_path, load_config
-from core.progress import download_file_with_progress
+from core.progress import download_file_with_progress, safe_urlopen
 
 
 class ThreadsExtractor(BaseExtractor):
     """Extractor for Meta Threads Posts (Videos, Photos, and Carousels/Slides)."""
 
     THREADS_REGEX = re.compile(
-        r"(?:https?://)?(?:www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t|share)/([a-zA-Z0-9_-]+)",
+        r"^(?:https?://)?(?:www\.)?threads\.(?:net|com)/(?:@([a-zA-Z0-9._]+)/)?(?:post|t|share)/([a-zA-Z0-9_-]+)(?:[/?#].*)?$",
         re.IGNORECASE
     )
 
@@ -79,8 +79,7 @@ class ThreadsExtractor(BaseExtractor):
         post_id = m.group(2)
 
         try:
-            req = urllib.request.Request(url, headers=self.BROWSER_HEADERS)
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with safe_urlopen(url, headers=self.BROWSER_HEADERS, timeout=10) as resp:
                 final_url = resp.geturl()
                 raw_html = resp.read().decode("utf-8", "ignore")
 

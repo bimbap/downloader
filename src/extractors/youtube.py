@@ -4,7 +4,7 @@
 import re
 import urllib.request
 import json
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +44,8 @@ class YouTubeExtractor(BaseExtractor):
         r"^(https?://)?(www\.|m\.)?(youtube\.com/(watch\?.*v=|shorts/|embed/|playlist\?.*list=)|youtu\.be/)([a-zA-Z0-9_-]+)"
     )
 
+    _SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
     @classmethod
     def is_suitable(cls, url: str) -> bool:
         return bool(cls.YOUTUBE_REGEX.match(url.strip()))
@@ -53,7 +55,14 @@ class YouTubeExtractor(BaseExtractor):
         if not url:
             return False, "", "URL cannot be empty."
 
-        parsed = urlparse(url)
+        if url.startswith("//"):
+            return False, "", "Not a recognized YouTube video or playlist URL."
+
+        candidate = url if "://" in url else f"https://{url}"
+        parsed = urlparse(candidate)
+        if parsed.scheme.lower() not in ("http", "https"):
+            return False, "", "Not a recognized YouTube video or playlist URL."
+
         netloc = parsed.netloc.lower()
         if netloc.startswith("www."):
             netloc = netloc[4:]
@@ -62,11 +71,11 @@ class YouTubeExtractor(BaseExtractor):
 
         if netloc == "youtu.be":
             vid_id = parsed.path.strip("/").split("/")[0]
-            if not vid_id or len(vid_id) < 6:
+            if not vid_id or len(vid_id) < 6 or not self._SAFE_ID_RE.fullmatch(vid_id):
                 return False, "", "Invalid youtu.be video ID."
             qs = parse_qs(parsed.query)
             clean_url = f"https://youtu.be/{vid_id}"
-            if "list" in qs:
+            if "list" in qs and self._SAFE_ID_RE.fullmatch(qs["list"][0]):
                 clean_url += f"?list={qs['list'][0]}"
             return True, clean_url, ""
 
@@ -76,23 +85,23 @@ class YouTubeExtractor(BaseExtractor):
 
             if path.startswith("/shorts/"):
                 vid_id = path.split("/")[2] if len(path.split("/")) > 2 else ""
-                if not vid_id:
+                if not vid_id or not self._SAFE_ID_RE.fullmatch(vid_id):
                     return False, "", "Invalid YouTube Shorts URL."
                 return True, f"https://www.youtube.com/shorts/{vid_id}", ""
 
             if path == "/watch":
                 vid_id = qs.get("v", [""])[0]
-                if not vid_id:
-                    return False, "", "Missing video ID (?v= parameter)."
+                if not vid_id or not self._SAFE_ID_RE.fullmatch(vid_id):
+                    return False, "", "Missing or invalid video ID (?v= parameter)."
                 clean_url = f"https://www.youtube.com/watch?v={vid_id}"
-                if "list" in qs:
+                if "list" in qs and self._SAFE_ID_RE.fullmatch(qs["list"][0]):
                     clean_url += f"&list={qs['list'][0]}"
                 return True, clean_url, ""
 
             if path == "/playlist":
                 list_id = qs.get("list", [""])[0]
-                if not list_id:
-                    return False, "", "Missing playlist ID (?list= parameter)."
+                if not list_id or not self._SAFE_ID_RE.fullmatch(list_id):
+                    return False, "", "Missing or invalid playlist ID (?list= parameter)."
                 return True, f"https://www.youtube.com/playlist?list={list_id}", ""
 
         return False, "", "Not a recognized YouTube video or playlist URL."
@@ -107,7 +116,7 @@ class YouTubeExtractor(BaseExtractor):
         # Quick oEmbed title check
         title = "YouTube Media"
         try:
-            oembed_url = f"https://www.youtube.com/oembed?url={urllib.parse.quote(url)}&format=json"
+            oembed_url = f"https://www.youtube.com/oembed?url={quote(url)}&format=json"
             req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -277,14 +286,22 @@ class YouTubeExtractor(BaseExtractor):
                         when="post_process"
                     )
                 info = ydl.extract_info(item.url, download=True)
-                # Collect files
-                if info:
-                    if "requested_downloads" in info:
-                        for rd in info["requested_downloads"]:
-                            if rd.get("filepath"):
-                                downloaded_files.append(Path(rd["filepath"]))
-                    elif info.get("filepath"):
-                        downloaded_files.append(Path(info["filepath"]))
-            return True, downloaded_files
-        except Exception as e:
+                self._collect_downloaded_files(info, downloaded_files)
+            return len(downloaded_files) > 0, downloaded_files
+        except Exception:
             return False, []
+
+    @classmethod
+    def _collect_downloaded_files(cls, info: dict | None, out: list[Path]):
+        """Recursively collects downloaded file paths from single or playlist yt-dlp info dicts."""
+        if not info or not isinstance(info, dict):
+            return
+        if "entries" in info and isinstance(info["entries"], list):
+            for entry in info["entries"]:
+                cls._collect_downloaded_files(entry, out)
+        if "requested_downloads" in info:
+            for rd in info["requested_downloads"]:
+                if rd.get("filepath"):
+                    out.append(Path(rd["filepath"]))
+        elif info.get("filepath"):
+            out.append(Path(info["filepath"]))

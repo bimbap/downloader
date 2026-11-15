@@ -10,7 +10,7 @@ from typing import Any
 
 from extractors.base import BaseExtractor, MediaItem
 from core.config import get_download_path, load_config, get_cookie_opts
-from core.progress import create_ytdlp_progress_hook, download_file_with_progress
+from core.progress import create_ytdlp_progress_hook, download_file_with_progress, safe_urlopen
 from core.ffmpeg_engine import FFMPEG_EXE
 
 try:
@@ -31,7 +31,7 @@ class InstagramExtractor(BaseExtractor):
     """Extractor for Instagram Reels, Videos, and Photo Carousels."""
 
     INSTAGRAM_REGEX = re.compile(
-        r"(?:https?://)?(?:www\.)?instagram\.com/(?:share/)?(p|reel|tv|reels)/([a-zA-Z0-9_-]+)",
+        r"^(?:https?://)?(?:www\.)?instagram\.com/(?:share/)?(p|reel|tv|reels)/([a-zA-Z0-9_-]+)(?:[/?#].*)?$",
         re.IGNORECASE
     )
 
@@ -265,11 +265,11 @@ class InstagramExtractor(BaseExtractor):
 
         # 3. OpenGraph fallback
         try:
-            req = urllib.request.Request(
+            with safe_urlopen(
                 item.url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=10
+            ) as resp:
                 html = resp.read().decode("utf-8", "ignore")
                 
                 v_match = re.search(r'<meta property="og:video" content="([^"]+)"', html)

@@ -122,8 +122,8 @@ class BaseExtractor(ABC):
 
 ### Phase 1: Ingestion & URL Normalization
 1. Raw URL is fed into `get_extractor_for_url(url)`.
-2. Extractor checks regex suitability (`is_suitable`).
-3. Extractor normalizes tracking query strings (e.g. `?igsh=`, `?s=`, `/share/` redirects).
+2. Extractor checks host-anchored regex suitability (`is_suitable`) to reject domain-spoofed URLs.
+3. Extractor validates scheme (`http`/`https`), enforces safe alphanumeric IDs (`[a-zA-Z0-9_-]+`), and normalizes tracking query strings (e.g. `?igsh=`, `?s=`, `/share/` redirects).
 
 ### Phase 2: Metadata Extraction
 1. Fast-path check: Light oEmbed or public HTTP inspection for instantaneous title resolution.
@@ -169,7 +169,7 @@ class BaseExtractor(ABC):
 
 ### 5.2 Audio Tagging & Mutagen Pipeline
 - Uses `yt-dlp`'s `FFmpegThumbnailsConvertor` to prepare `.jpg` covers.
-- `FFmpegSquareCropThumbnailPP` intercepts thumbnails before embedding, executing `ffmpeg -i <thumb> -vf "crop=ih:ih" <cropped>` for Topic tracks.
+- `FFmpegSquareCropThumbnailPP` intercepts thumbnails before embedding, executing `ffmpeg -i <thumb> -vf "crop=ih:ih" <cropped>` for Topic tracks, with guaranteed `finally:` cleanup of `.sq.jpg` temporary files.
 - `SafeEmbedThumbnailPP` embeds cover art using `mutagen` without throwing exceptions if container limits are reached.
 
 ### 5.3 Viewport Pagination Engine (`ui/menu.py`)
@@ -180,3 +180,7 @@ class BaseExtractor(ABC):
 ### 5.4 Cross-Platform Polyglot Launchers
 - **`run.bat`**: Windows batch file with a Bash polyglot header (`: << 'BATCH_OR_BASH'`). Runs in native CMD/PowerShell while cleanly delegating to `dl.sh` if invoked in Git Bash / MSYS2.
 - **`dl.sh`**: POSIX-compliant Bash launcher detecting `python3`, `py`, or `python`, with automatic upfront dependency verification and installation.
+
+### 5.5 Network & Redirect Security (`core/progress.py`)
+- Direct HTTP downloads and metadata/OpenGraph fetches use `safe_urlopen()` backed by `_SafeHTTPRedirectHandler`.
+- Enforces `http`/`https` schemes on both initial requests and every HTTP redirect hop, blocking `file://`, `javascript:`, and other non-HTTP(S) schemes.

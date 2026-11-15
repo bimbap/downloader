@@ -107,7 +107,7 @@ Examples:
     parser.add_argument("url", nargs="?", help="Media URL to download (YouTube, X, Instagram, Threads)")
     parser.add_argument("-m", "--mode", choices=["video", "audio", "mp3", "m4a", "opus", "wav", "best"], help="Download mode")
     parser.add_argument("-a", "--audio-only", action="store_true", help="Download audio only")
-    parser.add_argument("-r", "--resolution", choices=["4320", "2160", "1440", "1080", "720", "480", "360"], help="Video quality")
+    parser.add_argument("-r", "--resolution", choices=["best", "max", "auto", "4320", "2160", "1440", "1080", "720", "480", "360"], help="Video quality")
     parser.add_argument("-c", "--codec", choices=["h264", "av1", "vp9", "auto"], help="Video codec")
     parser.add_argument("--container", choices=["auto", "mp4", "webm", "mkv"], help="Video container")
     parser.add_argument("--audio-format", choices=["mp3", "m4a", "opus", "wav", "best"], help="Audio format")

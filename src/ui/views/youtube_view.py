@@ -77,10 +77,10 @@ def run_youtube_download_flow(item: MediaItem):
     best_audio_label = f"Audio (Original Stream / Best{cover_tag})"
 
     format_options = [
-        (default_video_label, "video_default", True, False, 1),
-        ("Video (Pick Custom Resolution)", "video_custom", True, False, 2),
-        (default_audio_label, "audio_default", True, True, 1),
-        (best_audio_label, "audio_best", True, False, 2),
+        (default_video_label, "video_default", True, False),
+        ("Video (Pick Custom Resolution)", "video_custom", True, False),
+        (default_audio_label, "audio_default", True, True),
+        (best_audio_label, "audio_best", True, False),
         (t("cancel"), "cancel", False, True)
     ]
 

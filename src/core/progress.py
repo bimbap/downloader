@@ -3,6 +3,8 @@
 # =============================================================================
 import sys
 import time
+import urllib.request
+from urllib.parse import urlparse
 from core.console import (
     BOLD_CYAN,
     BOLD_YELLOW,
@@ -102,24 +104,42 @@ def create_ytdlp_progress_hook(media_title: str | None = None):
     return hook
 
 
-def download_file_with_progress(url: str, output_path, headers: dict | None = None) -> bool:
-    """Downloads a file directly via HTTP with live progress reporting."""
-    import urllib.request
-    from pathlib import Path
+class _SafeHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Prevents HTTP redirects to non-HTTP(S) schemes such as file://."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        parsed = urlparse(newurl)
+        if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+            raise ValueError(f"Blocked unsafe redirect scheme: {parsed.scheme or 'none'}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
-    out_p = Path(output_path)
-    out_p.parent.mkdir(parents=True, exist_ok=True)
-    temp_p = out_p.with_name(f".temp_{out_p.name}")
+
+def safe_urlopen(url: str, headers: dict | None = None, timeout: int = 20):
+    """Opens an HTTP/HTTPS URL safely, blocking local file:// and non-HTTP schemes/redirects."""
+    parsed = urlparse(url.strip())
+    if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+        raise ValueError(f"Blocked non-HTTP(S) URL scheme: {parsed.scheme or 'none'}")
 
     req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     if headers:
         req_headers.update(headers)
 
     req = urllib.request.Request(url, headers=req_headers)
+    opener = urllib.request.build_opener(_SafeHTTPRedirectHandler())
+    return opener.open(req, timeout=timeout)
+
+
+def download_file_with_progress(url: str, output_path, headers: dict | None = None) -> bool:
+    """Downloads a file directly via HTTP with live progress reporting."""
+    from pathlib import Path
+
+    out_p = Path(output_path)
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+    temp_p = out_p.with_name(f".temp_{out_p.name}")
+
     bar_len = 24
 
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp, open(temp_p, "wb") as f:
+        with safe_urlopen(url, headers=headers, timeout=20) as resp, open(temp_p, "wb") as f:
             total_bytes = int(resp.headers.get("Content-Length", 0))
             downloaded = 0
             t_start = time.time()

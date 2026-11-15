@@ -373,12 +373,18 @@ class FFmpegSquareCropThumbnailPP(FFmpegPostProcessor):
         for t in info.get("thumbnails") or []:
             p = t.get("filepath")
             if p and Path(p).exists():
-                cropped = f"{p}.sq.jpg"
-                cmd = [FFMPEG_EXE, "-y", "-i", p, "-vf", "crop=ih:ih", cropped]
+                cropped = Path(f"{p}.sq.jpg")
+                cmd = [FFMPEG_EXE, "-y", "-i", p, "-vf", "crop=ih:ih", str(cropped)]
                 try:
                     res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    if res.returncode == 0 and Path(cropped).exists() and Path(cropped).stat().st_size > 0:
-                        Path(cropped).replace(p)
+                    if res.returncode == 0 and cropped.exists() and cropped.stat().st_size > 0:
+                        cropped.replace(p)
                 except Exception:
                     pass
+                finally:
+                    if cropped.exists():
+                        try:
+                            cropped.unlink()
+                        except Exception:
+                            pass
         return [], info

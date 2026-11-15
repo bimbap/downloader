@@ -23,7 +23,7 @@ class TwitterExtractor(BaseExtractor):
     """Extractor for X / Twitter Videos, GIFs, and Photos."""
 
     TWITTER_REGEX = re.compile(
-        r"(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)/([a-zA-Z0-9_]+)/status/([0-9]+)",
+        r"^(?:https?://)?(?:www\.|mobile\.)?(?:twitter\.com|x\.com)/([a-zA-Z0-9_]+)/status/([0-9]+)(?:[/?#].*)?$",
         re.IGNORECASE
     )
 
