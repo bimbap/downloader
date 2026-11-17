@@ -18,7 +18,7 @@ from core.config import (
     get_cookie_opts,
 )
 from core.ffmpeg_engine import FFMPEG_EXE, FFmpegUpscalePP, FFmpegSquareCropThumbnailPP
-from core.progress import create_ytdlp_progress_hook
+from core.progress import create_ytdlp_progress_hook, safe_urlopen
 
 try:
     import yt_dlp
@@ -117,8 +117,7 @@ class YouTubeExtractor(BaseExtractor):
         title = "YouTube Media"
         try:
             oembed_url = f"https://www.youtube.com/oembed?url={quote(url)}&format=json"
-            req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with safe_urlopen(oembed_url, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 title = data.get("title", title)
                 author = data.get("author_name", "Unknown")

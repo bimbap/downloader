@@ -10,7 +10,7 @@ from typing import Any
 
 from extractors.base import BaseExtractor, MediaItem
 from core.config import get_download_path, load_config, get_cookie_opts
-from core.progress import create_ytdlp_progress_hook, download_file_with_progress
+from core.progress import create_ytdlp_progress_hook, download_file_with_progress, safe_urlopen
 from core.ffmpeg_engine import FFMPEG_EXE
 
 try:
@@ -51,8 +51,7 @@ class TwitterExtractor(BaseExtractor):
         # 1. Query VxTwitter API for comprehensive metadata
         api_url = f"https://api.vxtwitter.com/{user}/status/{tweet_id}"
         try:
-            req = urllib.request.Request(api_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=6) as resp:
+            with safe_urlopen(api_url, timeout=6) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
 
                 author = data.get("user_name") or user
@@ -184,12 +183,14 @@ class TwitterExtractor(BaseExtractor):
 
                 if is_vid:
                     ext = ".mp4"
-                elif ".png" in m_url:
-                    ext = ".png"
-                elif ".webp" in m_url:
-                    ext = ".webp"
                 else:
-                    ext = ".jpg"
+                    url_path = urlparse(m_url).path.lower()
+                    if url_path.endswith(".png"):
+                        ext = ".png"
+                    elif url_path.endswith(".webp"):
+                        ext = ".webp"
+                    else:
+                        ext = ".jpg"
 
                 target_dir = get_download_path(options.get("output_dir"), platform="x", media_type=category)
                 idx = itm.get("index", 1)

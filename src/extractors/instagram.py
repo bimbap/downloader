@@ -166,8 +166,7 @@ class InstagramExtractor(BaseExtractor):
         author = "Instagram Creator"
         try:
             oembed_url = f"https://api.instagram.com/oembed/?url={urllib.parse.quote(url)}"
-            req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=4) as resp:
+            with safe_urlopen(oembed_url, timeout=4) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 author = data.get("author_name", author)
                 title = data.get("title") or f"{post_type} by {author}"

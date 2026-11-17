@@ -2,6 +2,7 @@
 # downloader/src/core/console.py – Terminal & Console Management
 # =============================================================================
 import os
+import re
 import sys
 
 # Force UTF-8 encoding on Windows to prevent cp1252 UnicodeEncodeError
@@ -84,32 +85,39 @@ def show_cursor():
     sys.stdout.flush()
 
 
+_ANSI_CONTROL_RE = re.compile(r"\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\\)|\[[0-9;?]*[ -/]*[@-~]|[@-Z\\-_])|[\x00-\x1f\x7f]")
+
+
+def sanitize_terminal_text(text: str | None) -> str:
+    """Strips ANSI/OSC escape sequences and control characters from untrusted metadata."""
+    if not text:
+        return ""
+    return _ANSI_CONTROL_RE.sub(" ", str(text)).strip()
+
+
+def enter_alt_screen():
+    """Switches terminal to alternate screen buffer so TUI output never pollutes shell scrollback."""
+    sys.stdout.write("\033[?1049h\033[H\033[2J")
+    sys.stdout.flush()
+
+
+def exit_alt_screen():
+    """Restores the original terminal screen buffer."""
+    sys.stdout.write("\033[?25h\033[0m\033[?1049l")
+    sys.stdout.flush()
+
+
 def clear_screen():
     """Clear visible screen and terminal scrollback history buffer across all environments."""
-    import shutil
-    # 1. Native terminal clear command
     is_bash_or_pty = ("MSYSTEM" in os.environ) or ("TERM" in os.environ) or ("MINGW_CHOST" in os.environ)
-    if is_bash_or_pty:
-        try:
-            os.system("clear")
-        except Exception:
-            pass
-    elif os.name == "nt":
+    if not is_bash_or_pty and os.name == "nt":
         try:
             os.system("cls")
         except Exception:
             pass
-    else:
-        try:
-            os.system("clear")
-        except Exception:
-            pass
 
-    # 2. Universal ANSI escape sequence:
-    # \033[H   : Cursor Home (row 1, col 1)
-    # \033[2J  : Clear entire visible screen
-    # \033[3J  : Clear terminal scrollback buffer (erases history above visible screen)
-    sys.stdout.write("\033[H\033[2J\033[3J")
+    # Clear scrollback (3J), move cursor home (H), erase visible screen (2J), and reset attributes
+    sys.stdout.write("\033[3J\033[H\033[2J\033[3J")
     sys.stdout.flush()
 
 

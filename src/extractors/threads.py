@@ -276,7 +276,7 @@ class ThreadsExtractor(BaseExtractor):
             ext = ".mp4" if is_vid else ".jpg"
 
             target_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=category)
-            clean_title = re.sub(r'[\\/*?:"<>|]', "", item.title[:35]).strip()
+            clean_title = re.sub(r'[\x00-\x1f\x7f\\/*?:"<>|]', "", item.title[:35]).strip()
             filename = f"@{author_clean}_{post_id}_{clean_title}{ext}" if clean_title else f"@{author_clean}_{post_id}{ext}"
             dest = target_dir / filename
 

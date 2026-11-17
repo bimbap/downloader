@@ -17,6 +17,7 @@ from core.console import (
     clear_screen,
     safe_input,
     get_key,
+    sanitize_terminal_text,
 )
 from core.config import get_download_path
 from core.i18n import t
@@ -89,9 +90,11 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
         return
 
     out_dir = get_download_path(platform=platform_key)
-    caption_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
+    safe_title = sanitize_terminal_text(item.title)
+    safe_author = sanitize_terminal_text(item.author)
+    caption_disp = (safe_title[:50] + "…") if len(safe_title) > 50 else safe_title
     info_header = [
-        f"{t('author')}      : {BOLD_YELLOW}{item.author}{NC}",
+        f"{t('author')}      : {BOLD_YELLOW}{safe_author}{NC}",
         f"{t('caption')}     : {BOLD}{caption_disp}{NC}",
         f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else ""),
         f"{t('destination')} : {BOLD_BLUE}{out_dir}{NC}"

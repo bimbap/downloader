@@ -13,6 +13,7 @@ from core.console import (
     DIM,
     NC,
     CLEAR_LINE,
+    sanitize_terminal_text,
 )
 
 
@@ -30,7 +31,7 @@ def create_ytdlp_progress_hook(media_title: str | None = None):
         try:
             if d["status"] == "downloading":
                 info = d.get("info_dict", {})
-                raw_title = info.get("title") or media_title
+                raw_title = sanitize_terminal_text(info.get("title") or media_title)
                 vcodec = info.get("vcodec")
                 acodec = info.get("acodec")
 

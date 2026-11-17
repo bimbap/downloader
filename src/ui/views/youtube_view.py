@@ -17,6 +17,7 @@ from core.console import (
     clear_screen,
     safe_input,
     get_key,
+    sanitize_terminal_text,
 )
 from core.config import (
     load_config,
@@ -34,6 +35,8 @@ from ui.views.smart_download import render_download_result
 def run_youtube_download_flow(item: MediaItem):
     """Handles full interactive options and execution for a YouTube video or playlist."""
     cfg = load_config()
+    safe_title = sanitize_terminal_text(item.title)
+    safe_author = sanitize_terminal_text(item.author)
     is_playlist = (item.media_type == "playlist")
 
     # If it's a playlist URL, check user playlist mode
@@ -46,7 +49,7 @@ def run_youtube_download_flow(item: MediaItem):
                 (t("cancel"), "cancel", False, True)
             ]
             choice = select_menu_option(
-                f"Playlist Detected: {item.title[:45]}",
+                f"Playlist Detected: {safe_title[:45]}",
                 pl_options,
                 header_info=[f"Playlist contains {BOLD_GREEN}{len(item.items)}{NC} items."]
             )
@@ -84,10 +87,10 @@ def run_youtube_download_flow(item: MediaItem):
         (t("cancel"), "cancel", False, True)
     ]
 
-    title_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
+    title_disp = (safe_title[:50] + "…") if len(safe_title) > 50 else safe_title
     header = [
         f"Target : {BOLD_YELLOW}{title_disp}{NC}",
-        f"Author : {DIM}{item.author}{NC}  |  Type: {BOLD_CYAN}{'PLAYLIST' if is_playlist else 'VIDEO'}{NC}"
+        f"Author : {DIM}{safe_author}{NC}  |  Type: {BOLD_CYAN}{'PLAYLIST' if is_playlist else 'VIDEO'}{NC}"
     ]
 
     choice = select_menu_option("Download Format", format_options, header_info=header)
@@ -127,8 +130,8 @@ def run_youtube_download_flow(item: MediaItem):
     clear_screen()
     banner = "Downloading Playlist" if is_playlist else "Downloading YouTube Media"
     print(f"{BOLD_CYAN}── {BOLD_YELLOW}{banner}{BOLD_CYAN} ─────────────────────────────{NC}\n")
-    print(f"  Title           : {BOLD_YELLOW}{item.title}{NC}")
-    print(f"  Author          : {DIM}{item.author}{NC}")
+    print(f"  Title           : {BOLD_YELLOW}{safe_title}{NC}")
+    print(f"  Author          : {DIM}{safe_author}{NC}")
     res_disp = "Auto / Best" if chosen_res in ("best", "max", "auto") else f"{chosen_res}p"
     print(f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC} ({res_disp})" if mode == "video" else f"  Format Mode     : {BOLD_CYAN}{mode.upper()}{NC}")
     out_dir = get_download_path(platform="youtube")

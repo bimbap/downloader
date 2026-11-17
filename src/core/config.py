@@ -117,7 +117,7 @@ def get_download_path(
             elif m in ("video", "reel", "reels", "gif", "tv", "clip", "playlist"):
                 category = "video"
             else:
-                category = m
+                category = re.sub(r"[^a-z0-9_-]", "", m) or "other"
             p = p / category
 
     p.mkdir(parents=True, exist_ok=True)

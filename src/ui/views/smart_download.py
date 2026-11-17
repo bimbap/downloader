@@ -17,6 +17,7 @@ from core.console import (
     clear_screen,
     safe_input,
     get_key,
+    sanitize_terminal_text,
 )
 from core.file_manager import open_download_folder, open_file_in_player
 from core.config import load_config
@@ -27,6 +28,8 @@ from ui.menu import select_menu_option
 
 def render_download_result(success: bool, downloaded_files: list[Path], output_dir: Path):
     """Renders final result and interactive actions (Open folder, Play)."""
+    if success:
+        clear_screen()
     print(f"\n{BOLD_CYAN}------------------------------------------------------------{NC}")
     if success and downloaded_files:
         print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('download_success')}")
@@ -120,10 +123,12 @@ def run_smart_download(prefilled_url: str | None = None):
         "threads": "Threads",
     }.get(item.platform, item.platform.capitalize())
 
-    caption_disp = (item.title[:50] + "…") if len(item.title) > 50 else item.title
+    safe_title = sanitize_terminal_text(item.title)
+    safe_author = sanitize_terminal_text(item.author)
+    caption_disp = (safe_title[:50] + "…") if len(safe_title) > 50 else safe_title
     info_header = [
         f"Platform    : {BOLD_CYAN}{platform_name}{NC}",
-        f"{t('author')}      : {BOLD_YELLOW}{item.author}{NC}",
+        f"{t('author')}      : {BOLD_YELLOW}{safe_author}{NC}",
         f"{t('caption')}     : {BOLD}{caption_disp}{NC}",
         f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else ""),
         f"{t('destination')} : {BOLD_BLUE}{target_out}{NC}"

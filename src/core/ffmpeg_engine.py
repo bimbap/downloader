@@ -329,6 +329,7 @@ class FFmpegUpscalePP(FFmpegPostProcessor):
             if proc:
                 try:
                     proc.kill()
+                    proc.wait(timeout=3)
                 except Exception:
                     pass
             if upscaled_path.exists():

@@ -14,6 +14,7 @@ if str(SRC_DIR) not in sys.path:
 
 from core.console import (
     configure_windows_console,
+    sanitize_terminal_text,
     BOLD_CYAN,
     BOLD_YELLOW,
     BOLD_GREEN,
@@ -47,8 +48,8 @@ def run_cli_download(args):
         sys.exit(1)
 
     print(f"  Platform  : {BOLD_CYAN}{item.platform.upper()}{NC}")
-    print(f"  Title     : {BOLD_YELLOW}{item.title}{NC}")
-    print(f"  Author    : {DIM}{item.author}{NC}")
+    print(f"  Title     : {BOLD_YELLOW}{sanitize_terminal_text(item.title)}{NC}")
+    print(f"  Author    : {DIM}{sanitize_terminal_text(item.author)}{NC}")
     print(f"  Type      : {BOLD_GREEN}{item.media_type.upper()}{NC}")
 
     opts = {

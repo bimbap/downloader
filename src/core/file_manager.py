@@ -200,7 +200,7 @@ def get_category_overview(root_dir: Path | None = None) -> list[dict]:
 def open_file_in_player(filepath: Path | str) -> bool:
     """Opens a media file in the user's default system player."""
     p = Path(filepath).resolve()
-    if not p.exists():
+    if not p.exists() or not p.is_file() or p.suffix.lower() not in SUPPORTED_EXTENSIONS:
         return False
     try:
         if os.name == "nt":
