@@ -56,10 +56,14 @@ class ThreadsExtractor(BaseExtractor):
 
     @staticmethod
     def _collect_posts(node: Any, out: list[dict]):
-        """Recursively traverses embedded json tree to collect all thread post objects."""
+        """Recursively traverses embedded json tree to collect all thread post/media objects."""
         if not node or not isinstance(node, (dict, list)):
             return
         if isinstance(node, dict):
+            if "code" in node and isinstance(node.get("code"), str) and (
+                "user" in node or "caption" in node or "image_versions2" in node or "video_versions" in node or "carousel_media" in node
+            ):
+                out.append(node)
             if "thread_items" in node and isinstance(node["thread_items"], list):
                 for item in node["thread_items"]:
                     if isinstance(item, dict) and "post" in item and isinstance(item["post"], dict):
@@ -109,8 +113,6 @@ class ThreadsExtractor(BaseExtractor):
                         pass
 
                 target_post = next((p for p in posts if p.get("code") == post_id), None)
-                if not target_post and posts:
-                    target_post = posts[0]
 
                 if target_post:
                     author_name = target_post.get("user", {}).get("username") or user
