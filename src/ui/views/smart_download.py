@@ -20,9 +20,11 @@ from core.console import (
     sanitize_terminal_text,
 )
 from core.file_manager import open_download_folder, open_file_in_player
-from core.config import load_config
+from core.config import load_config, get_download_path
+from core.batch import parse_batch_input, validate_batch_urls, execute_batch_download
 from core.i18n import t
 from extractors import get_extractor_for_url, detect_platform
+from extractors.youtube import YouTubeExtractor
 from ui.menu import select_menu_option
 
 
@@ -63,22 +65,145 @@ def render_download_result(success: bool, downloaded_files: list[Path], output_d
             break
 
 
+def collect_multiline_urls() -> list[str]:
+    """Collects multiple URLs entered line-by-line until an empty line is submitted."""
+    print(f"\n  {BOLD_CYAN}{t('batch_multiline_prompt')}{NC}\n")
+    collected: list[str] = []
+    while True:
+        line = safe_input(f"  [{len(collected) + 1}] URL: ").strip()
+        if not line:
+            break
+        collected.extend(parse_batch_input(line))
+    return list(dict.fromkeys(collected))
+
+
+def render_batch_result(summary: dict, output_dir: Path):
+    """Renders final batch summary with open-folder shortcut."""
+    clear_screen()
+    ok_count = len(summary["succeeded"])
+    total = summary["total"]
+    fail_list = summary["failed"]
+    files = summary["files"]
+
+    print(f"\n{BOLD_CYAN}------------------------------------------------------------{NC}")
+    if ok_count > 0:
+        print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('batch_summary', ok=ok_count, total=total)}")
+    else:
+        print(f"  {BOLD_RED}✖ [{t('failed')}]{NC} {t('batch_summary', ok=ok_count, total=total)}")
+
+    print(f"  {t('destination')}: {BOLD_BLUE}{output_dir}{NC}")
+    for idx, f in enumerate(files[:5], 1):
+        print(f"    {DIM}{idx}.{NC} {sanitize_terminal_text(f.name)}")
+    if len(files) > 5:
+        print(f"    {DIM}... and {len(files) - 5} more file(s){NC}")
+
+    if fail_list:
+        print(f"\n  {BOLD_RED}{t('failed')} ({len(fail_list)}):{NC}")
+        for entry in fail_list[:5]:
+            print(f"    {BOLD_RED}✖{NC} {sanitize_terminal_text(entry['url'])} ({entry['reason']})")
+
+    print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+    print(f"  {DIM}[Enter] {t('back_simple')}  |  [o] {t('open_folder')}{NC}")
+    print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+
+    while True:
+        k = get_key()
+        if k in ("ENTER", "Q", "ESC", "BACKSPACE"):
+            clear_screen()
+            break
+        elif k == "O":
+            open_download_folder(output_dir)
+            clear_screen()
+            break
+
+
+def run_batch_download_flow(
+    raw_urls: list[str],
+    extractor_cls: type | None = None,
+    title_prefix: str = "Batch Download"
+):
+    """Validates, confirms, and executes a batch download with per-item screen clearing."""
+    valid_targets, invalid_entries = validate_batch_urls(raw_urls, extractor_cls=extractor_cls)
+    if not valid_targets:
+        print(f"\n  {BOLD_RED}✖ [{t('error')}]{NC} {t('batch_no_valid')}")
+        print(f"\n  {DIM}[Enter] {t('back_simple')}{NC}")
+        get_key()
+        clear_screen()
+        return
+
+    cfg = load_config()
+    has_youtube = any(isinstance(ext, YouTubeExtractor) for ext, _ in valid_targets)
+    res_tag = "Auto/Max" if cfg.get("default_resolution", "1080") in ("best", "max", "auto") else f"{cfg.get('default_resolution', '1080')}p"
+    audio_fmt = cfg.get("audio_format", "mp3").upper()
+
+    header = [
+        f"Valid Links : {BOLD_GREEN}{len(valid_targets)}{NC} link(s)" + (f"  |  {BOLD_YELLOW}{t('batch_invalid_skipped', count=len(invalid_entries))}{NC}" if invalid_entries else ""),
+        f"Destination : {BOLD_BLUE}{get_download_path()}{NC}"
+    ]
+
+    if has_youtube:
+        options = [
+            (t("batch_start_video", res=res_tag), "video", True, False),
+            (t("batch_start_audio", fmt=audio_fmt), "audio", True, False),
+            (t("cancel"), "cancel", False, True),
+        ]
+    else:
+        options = [
+            (t("batch_start", count=len(valid_targets)), "video", True, False),
+            (t("cancel"), "cancel", False, True),
+        ]
+
+    choice = select_menu_option(f"{title_prefix} – {t('batch_ready')}", options, header_info=header)
+    if choice in ("cancel", None):
+        clear_screen()
+        return
+
+    batch_opts = {"mode": choice}
+
+    def on_item_start(idx: int, total: int, _ext, norm_url: str):
+        clear_screen()
+        print(f"{BOLD_CYAN}── {BOLD_YELLOW}{t('batch_progress', idx=idx, total=total)}{BOLD_CYAN} ─────────────────────────────{NC}")
+        print(f"  {DIM}URL:{NC} {sanitize_terminal_text(norm_url)}\n")
+
+    summary = execute_batch_download(valid_targets, options=batch_opts, on_item_start=on_item_start)
+    final_dir = summary["files"][0].parent if summary["files"] else get_download_path()
+    render_batch_result(summary, final_dir)
+
+
 def run_smart_download(prefilled_url: str | None = None):
-    """Prompts for any social media URL, auto-detects platform, and downloads."""
+    """Prompts for single or batch social media URLs, auto-detects platform, and downloads."""
     clear_screen()
     print(f"{BOLD_CYAN}── {BOLD_YELLOW}{t('smart_title')}{BOLD_CYAN} ─────────────────────────────{NC}")
     print(f"  {DIM}Platforms: YouTube • X / Twitter • Instagram • Threads{NC}\n")
 
     if prefilled_url:
-        url = prefilled_url.strip()
-        print(f"  Target URL: {BOLD_GREEN}{url}{NC}\n")
+        raw_input = prefilled_url.strip()
+        print(f"  Target URL: {BOLD_GREEN}{raw_input}{NC}\n")
     else:
         print(f"  {DIM}{t('smart_paste')}{NC}")
-        url = safe_input("  URL: ").strip()
+        raw_input = safe_input("  URL: ").strip()
 
-    if not url:
+    if not raw_input:
         clear_screen()
         return
+
+    if raw_input.lower() in ("batch", "b"):
+        urls = collect_multiline_urls()
+        if not urls:
+            clear_screen()
+            return
+        run_batch_download_flow(urls, title_prefix=t("smart_title"))
+        return
+
+    urls = parse_batch_input(raw_input)
+    if not urls:
+        clear_screen()
+        return
+    if len(urls) > 1:
+        run_batch_download_flow(urls, title_prefix=t("smart_title"))
+        return
+
+    url = urls[0]
 
     extractor = get_extractor_for_url(url)
     if not extractor:

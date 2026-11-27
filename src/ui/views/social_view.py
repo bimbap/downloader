@@ -20,13 +20,18 @@ from core.console import (
     sanitize_terminal_text,
 )
 from core.config import get_download_path
+from core.batch import parse_batch_input
 from core.i18n import t
 from extractors.base import MediaItem
 from extractors.twitter import TwitterExtractor
 from extractors.instagram import InstagramExtractor
 from extractors.threads import ThreadsExtractor
 from ui.menu import select_menu_option
-from ui.views.smart_download import render_download_result
+from ui.views.smart_download import (
+    render_download_result,
+    collect_multiline_urls,
+    run_batch_download_flow,
+)
 
 
 def prompt_slide_selection(total_slides: int) -> list[int]:
@@ -65,11 +70,29 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
     clear_screen()
     print(f"{BOLD_CYAN}── {color_code}{platform_title}{BOLD_CYAN} ─────────────────────────────{NC}")
     print(f"  {DIM}{t('paste_link')} (e.g. {example_url}):{NC}\n")
-    url = safe_input("  URL: ").strip()
+    raw_input = safe_input("  URL: ").strip()
 
-    if not url:
+    if not raw_input:
         clear_screen()
         return
+
+    if raw_input.lower() in ("batch", "b"):
+        urls = collect_multiline_urls()
+        if not urls:
+            clear_screen()
+            return
+        run_batch_download_flow(urls, extractor_cls=extractor_cls, title_prefix=platform_title)
+        return
+
+    urls = parse_batch_input(raw_input)
+    if not urls:
+        clear_screen()
+        return
+    if len(urls) > 1:
+        run_batch_download_flow(urls, extractor_cls=extractor_cls, title_prefix=platform_title)
+        return
+
+    url = urls[0]
 
     extractor = extractor_cls()
     is_valid, norm_url, reason = extractor.validate_url(url)

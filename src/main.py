@@ -23,13 +23,29 @@ from core.console import (
     NC,
 )
 from core.config import ensure_dependencies, load_config, get_download_path
+from core.batch import parse_batch_input, validate_batch_urls, execute_batch_download
 from extractors import get_extractor_for_url, detect_platform
 from ui.views.main_menu import run_main_menu
 
 
-def run_cli_download(args):
-    """Executes a headless CLI download without interactive TUI."""
-    url = args.url.strip()
+def _build_cli_opts(args) -> dict:
+    return {
+        "mode": args.mode or ("audio" if args.audio_only else "video"),
+        "resolution": args.resolution,
+        "video_codec": args.codec,
+        "video_container": args.container,
+        "audio_format": args.audio_format,
+        "audio_bitrate": args.audio_bitrate,
+        "filename_style": args.style,
+        "is_playlist": args.playlist,
+        "force_upscale": args.force_upscale,
+        "output_dir": args.output,
+    }
+
+
+def run_cli_download(raw_url: str, args):
+    """Executes a headless single-URL CLI download without interactive TUI."""
+    url = raw_url.strip()
     extractor = get_extractor_for_url(url)
     if not extractor:
         print(f"\n{BOLD_RED}✖ [ERROR]{NC} Unsupported URL: {url}")
@@ -52,19 +68,7 @@ def run_cli_download(args):
     print(f"  Author    : {DIM}{sanitize_terminal_text(item.author)}{NC}")
     print(f"  Type      : {BOLD_GREEN}{item.media_type.upper()}{NC}")
 
-    opts = {
-        "mode": args.mode or ("audio" if args.audio_only else "video"),
-        "resolution": args.resolution,
-        "video_codec": args.codec,
-        "video_container": args.container,
-        "audio_format": args.audio_format,
-        "audio_bitrate": args.audio_bitrate,
-        "filename_style": args.style,
-        "is_playlist": args.playlist,
-        "force_upscale": args.force_upscale,
-        "output_dir": args.output,
-    }
-
+    opts = _build_cli_opts(args)
     out_dir = get_download_path(args.output, platform=item.platform)
     print(f"  Output Dir: {DIM}{out_dir}{NC}\n")
 
@@ -72,11 +76,42 @@ def run_cli_download(args):
     if success and files:
         print(f"\n{BOLD_GREEN}✔ [SUCCESS]{NC} Downloaded {len(files)} file(s) successfully!")
         for f in files:
-            print(f"  • {f.name}")
+            print(f"  • {sanitize_terminal_text(f.name)}")
     elif success:
         print(f"\n{BOLD_GREEN}✔ [SUCCESS]{NC} Download completed successfully!")
     else:
         print(f"\n{BOLD_RED}✖ [FAILED]{NC} Download failed.\n")
+        sys.exit(1)
+
+
+def run_cli_batch(raw_urls: list[str], args):
+    """Executes a headless batch CLI download for multiple URLs."""
+    valid_targets, invalid_entries = validate_batch_urls(raw_urls)
+    if invalid_entries:
+        print(f"\n{BOLD_YELLOW}[!] Skipped {len(invalid_entries)} invalid/unsupported URL(s):{NC}")
+        for u, reason in invalid_entries:
+            print(f"  • {sanitize_terminal_text(u)}: {reason}")
+
+    if not valid_targets:
+        print(f"\n{BOLD_RED}✖ [ERROR]{NC} No valid URLs to download.\n")
+        sys.exit(1)
+
+    opts = _build_cli_opts(args)
+    print(f"\n{BOLD_CYAN}── Starting Batch Download ({len(valid_targets)} URLs) ──{NC}")
+
+    def on_start(idx: int, total: int, _ext, norm_url: str):
+        print(f"\n{BOLD_CYAN}[{idx}/{total}]{NC} {sanitize_terminal_text(norm_url)}")
+
+    summary = execute_batch_download(valid_targets, options=opts, on_item_start=on_start)
+    ok_count = len(summary["succeeded"])
+    fail_count = len(summary["failed"])
+
+    print(f"\n{BOLD_CYAN}── Batch Summary ──{NC}")
+    print(f"  {BOLD_GREEN}✔ Succeeded:{NC} {ok_count}/{summary['total']}")
+    if fail_count:
+        print(f"  {BOLD_RED}✖ Failed   :{NC} {fail_count}/{summary['total']}")
+        for entry in summary["failed"]:
+            print(f"    • {sanitize_terminal_text(entry['url'])} ({entry['reason']})")
         sys.exit(1)
 
 
@@ -105,7 +140,8 @@ Examples:
   python src/main.py "https://www.threads.net/@user/post/C8..."
         """
     )
-    parser.add_argument("url", nargs="?", help="Media URL to download (YouTube, X, Instagram, Threads)")
+    parser.add_argument("urls", nargs="*", help="One or more media URLs to download (YouTube, X, Instagram, Threads)")
+    parser.add_argument("-f", "--batch", dest="batch_file", help="Path to a .txt file containing URLs (one per line)")
     parser.add_argument("-m", "--mode", choices=["video", "audio", "mp3", "m4a", "opus", "wav", "best"], help="Download mode")
     parser.add_argument("-a", "--audio-only", action="store_true", help="Download audio only")
     parser.add_argument("-r", "--resolution", choices=["best", "max", "auto", "4320", "2160", "1440", "1080", "720", "480", "360"], help="Video quality")
@@ -121,8 +157,20 @@ Examples:
 
     args = parser.parse_args()
 
-    if args.url:
-        run_cli_download(args)
+    cli_urls: list[str] = []
+    for u in args.urls:
+        cli_urls.extend(parse_batch_input(u))
+    if args.batch_file:
+        cli_urls.extend(parse_batch_input(args.batch_file))
+    cli_urls = list(dict.fromkeys(cli_urls))
+
+    if len(cli_urls) > 1 or (args.batch_file and cli_urls):
+        run_cli_batch(cli_urls, args)
+    elif len(cli_urls) == 1:
+        run_cli_download(cli_urls[0], args)
+    elif args.batch_file:
+        print(f"\n{BOLD_RED}✖ [ERROR]{NC} No valid URLs found in batch file: {args.batch_file}\n")
+        sys.exit(1)
     else:
         run_main_menu()
 

@@ -80,13 +80,18 @@ python src/main.py "https://youtu.be/dQw4w9WgXcQ" -r 1440 -u
 
 # Download entire YouTube playlist
 python src/main.py "https://www.youtube.com/playlist?list=PL..." -p
+
+# Batch download multiple URLs or from a .txt file
+python src/main.py "https://youtu.be/dQw4w9WgXcQ" "https://x.com/user/status/123456789"
+python src/main.py -f urls.txt
 ```
 
 #### CLI Flags Reference
 
 | Option | Flag | Values / Default | Description |
 | :--- | :--- | :--- | :--- |
-| `url` | *(pos)* | `<URL>` | Media URL to download |
+| `urls` | *(pos)* | `<URL...>` | One or more media URLs to download |
+| `--batch` | `-f` | `<path.txt>` | Text file containing URLs (one per line) |
 | `--mode` | `-m` | `video`, `audio`, `mp3`, `m4a`, `opus`, `wav`, `best` | Target media mode |
 | `--audio-only`| `-a` | *(flag)* | Download audio track only |
 | `--resolution`| `-r` | `best`, `4320`, `2160`, `1440`, `1080`, `720`, `480`, `360` | Target resolution |

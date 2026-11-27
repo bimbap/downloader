@@ -25,11 +25,16 @@ from core.config import (
     resolve_video_container,
 )
 from core.ffmpeg_engine import FFMPEG_EXE
+from core.batch import parse_batch_input
 from core.i18n import t
 from extractors.base import MediaItem
 from extractors.youtube import YouTubeExtractor
 from ui.menu import select_menu_option
-from ui.views.smart_download import render_download_result
+from ui.views.smart_download import (
+    render_download_result,
+    collect_multiline_urls,
+    run_batch_download_flow,
+)
 
 
 def run_youtube_download_flow(item: MediaItem):
@@ -157,12 +162,30 @@ def run_youtube_view():
     """Main entry for YouTube Downloader category."""
     clear_screen()
     print(f"{BOLD_CYAN}── {BOLD_RED}YouTube Downloader{BOLD_CYAN} ─────────────────────────────{NC}")
-    print(f"  {DIM}Paste any YouTube Video, Shorts, or Playlist link:{NC}\n")
-    url = safe_input("  URL: ").strip()
+    print(f"  {DIM}{t('paste_link')} (e.g. YouTube Video, Shorts, Playlist){NC}\n")
+    raw_input = safe_input("  URL: ").strip()
 
-    if not url:
+    if not raw_input:
         clear_screen()
         return
+
+    if raw_input.lower() in ("batch", "b"):
+        urls = collect_multiline_urls()
+        if not urls:
+            clear_screen()
+            return
+        run_batch_download_flow(urls, extractor_cls=YouTubeExtractor, title_prefix="YouTube Downloader")
+        return
+
+    urls = parse_batch_input(raw_input)
+    if not urls:
+        clear_screen()
+        return
+    if len(urls) > 1:
+        run_batch_download_flow(urls, extractor_cls=YouTubeExtractor, title_prefix="YouTube Downloader")
+        return
+
+    url = urls[0]
 
     extractor = YouTubeExtractor()
     is_valid, norm_url, reason = extractor.validate_url(url)
