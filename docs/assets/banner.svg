@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="1200" height="260" role="img" aria-label="Universal Media Downloader">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D1117" />
+      <stop offset="50%" stop-color="#111824" />
+      <stop offset="100%" stop-color="#0D1117" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.14" />
+      <stop offset="60%" stop-color="#10B981" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#0D1117" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="accent-line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0" />
+      <stop offset="30%" stop-color="#06B6D4" stop-opacity="0.75" />
+      <stop offset="50%" stop-color="#10B981" stop-opacity="0.9" />
+      <stop offset="70%" stop-color="#06B6D4" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0" />
+    </linearGradient>
+    <pattern id="dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#30363D" opacity="0.55" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="260" rx="14" fill="url(#bg-grad)" />
+  <rect width="1200" height="260" rx="14" fill="url(#dots)" />
+  <rect width="1200" height="260" rx="14" fill="url(#glow)" />
+  <rect x="0.5" y="0.5" width="1199" height="259" rx="14" fill="none" stroke="#30363D" stroke-opacity="0.7" />
+
+  <text
+    x="600"
+    y="142"
+    text-anchor="middle"
+    fill="#F0F6FC"
+    font-family="'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    font-size="48"
+    font-weight="700"
+    letter-spacing="1.5"
+  >Universal Media Downloader</text>
+
+  <rect x="260" y="172" width="680" height="2" rx="1" fill="url(#accent-line)" />
+</svg>

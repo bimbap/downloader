@@ -1,20 +1,34 @@
-# Universal Social Media Downloader
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="Universal Social Media Downloader" width="100%" />
+</p>
+<!-- 
+<h1 align="center">Universal Social Media Downloader</h1> -->
 
-An ultra-fast, zero-lag interactive Terminal UI & CLI tool for downloading, converting, and upscaling media across **YouTube**, **X (formerly Twitter)**, **Instagram**, and **Threads**. Powered by Python 3, `yt-dlp`, `mutagen`, and bundled `imageio-ffmpeg`.
+<p align="center">
+  <strong>Zero-lag interactive Terminal UI &amp; headless CLI for YouTube, X (Twitter), Instagram, and Threads.</strong><br/>
+  Powered by Python 3, <code>yt-dlp</code>, <code>mutagen</code>, and bundled <code>imageio-ffmpeg</code>.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/License-MIT-10B981?style=flat-square" alt="MIT License" />
+  <img src="https://img.shields.io/badge/Interface-ANSI%20TUI%20%26%20CLI-06B6D4?style=flat-square" alt="ANSI TUI & CLI" />
+  <img src="https://img.shields.io/badge/Platforms-YouTube%20%E2%80%A2%20X%20%E2%80%A2%20IG%20%E2%80%A2%20Threads-F59E0B?style=flat-square" alt="Platforms" />
+</p>
 
 ---
 
 ## Features
 
-- ⚡ **Universal Smart Downloader**: Paste any link from YouTube, X, Instagram, or Threads. Automatically detects platform, media type, and best quality stream.
-- 🚀 **Zero-Lag ANSI Terminal UI**: Smooth keyboard navigation (`↑/↓`, number jump `1-9`, `Enter`, `q`/`ESC`) with dynamic viewport pagination adapting to terminal height.
-- 🔴 **YouTube Video & Playlists**: Up to 8K Ultra HD (`4320p`, `2160p`, `1440p`, `1080p`, etc.) or Auto Maximal (`best`). Supports full playlists with in-memory caching and multi-stream progress bars.
-- 🎵 **Audio Extraction & Square Album Art**: Convert to MP3 (up to 320 kbps), M4A, Opus, or lossless WAV. Automatically crops 16:9 thumbnails to 1:1 square album art and embeds ID3 metadata.
-- 📷 **X, Instagram & Threads**: High-res video reels, GIFs, and batch multi-photo carousel galleries.
-- 🔍 **GPU Hardware Upscaling**: Upscale lower-resolution media to 2K, 4K, or 8K via NVIDIA NVENC, Intel QSV, AMD AMF, or CPU Bicubic scaling with atomic safe processing.
-- 🍪 **Cookie Authentication**: Import session cookies from Chrome, Firefox, Edge, Brave, Opera, or Vivaldi for age-restricted (18+) or login-walled content.
-- 🌐 **Bilingual (i18n)**: Instant switching between English 🇬🇧 and Bahasa Indonesia 🇮🇩.
-- 💻 **Zero-Setup Launchers**: Native Windows launcher (`run.bat`) and POSIX launcher (`dl.sh`) with auto-install for dependencies.
+- ⚡ **Single & Batch Smart Downloader**: Paste 1 link, multiple links (space/comma-separated), a `.txt` batch file, or type `batch` for multi-line input. Auto-detects platform and media type.
+- 🚀 **Zero-Lag ANSI Terminal UI**: Smooth keyboard navigation (`↑/↓`, number jump `1-9`, `Enter`, `q`/`ESC`, `Ctrl+C` clean exit) inside an isolated Alternate Screen Buffer with zero scrollback clutter.
+- 🔴 **YouTube Videos, Playlists & Community Posts**: Up to 8K (`4320p`, `2160p`, `1440p`, `1080p`, `best`), full playlists, plus YouTube Community Posts (`/post/` & `?lb=`) including attached videos, images, and post text.
+- 🎵 **Audio Extraction & 1:1 Square Album Art**: Convert to MP3 (up to 320 kbps), M4A, Opus, WAV, or original stream (`best`). Automatically crops 16:9 Topic thumbnails to 1:1 square cover art and embeds ID3 metadata.
+- 📷 **X, Instagram & Threads Carousels**: High-res `?name=orig` X photos (`FxTwitter` + `VxTwitter` fallback), Instagram Reels/carousels, and Threads `/share/` & multi-slide posts with selective slide picking.
+- 📁 **Per-Link Bundle Folders & `caption.txt`**: Organizes each link cleanly into its own subfolder alongside `caption.txt` (with `[c] View Caption` in TUI and auto-cleanup of empty folders on delete).
+- 🔍 **GPU Hardware Upscaling**: Upscale lower-resolution video to 2K, 4K, or 8K via NVIDIA NVENC, Intel QSV, AMD AMF, or CPU Bicubic scaling with atomic safe processing.
+- 🍪 **Cookie Authentication**: Import session cookies from Chrome, Firefox, Edge, Brave, Opera, or Vivaldi for age-restricted (18+) or login-walled posts.
+- 🌐 **Bilingual (i18n) & Zero-Setup Launchers**: Instant switching between English 🇬🇧 and Bahasa Indonesia 🇮🇩, with `run.bat` (Windows) and `dl.sh` (POSIX) auto-installing dependencies.
 
 ---
 
@@ -54,8 +68,8 @@ cd downloader
 | Key | Action | Key | Action |
 | :--- | :--- | :--- | :--- |
 | `↑` / `k` | Move cursor up | `Enter` / `Space` | Select / Confirm |
-| `↓` / `j` | Move cursor down | `q` / `ESC` | Back / Cancel |
-| `1` – `9` | Direct jump to option | `o` / `p` | Open folder / Play file |
+| `↓` / `j` | Move cursor down | `q` / `ESC` / `Ctrl+C` | Back / Clean Exit |
+| `1` – `9` | Direct jump to option | `o` / `p` / `c` | Open folder / Play / View caption |
 
 ---
 
@@ -116,18 +130,19 @@ downloader/
 ├── requirements.txt     # Python dependencies (yt-dlp, imageio-ffmpeg, requests, mutagen)
 ├── README.md            # Concise project documentation
 ├── docs/                # Authoritative engineering documentation
+│   ├── assets/          # Repository banner & visual assets
 │   ├── PRD.md
 │   ├── Architecture.md
 │   ├── Design.md
 │   └── Rules.md
-├── downloads/           # Saved media organized by platform
+├── downloads/           # Saved media organized by platform & category
 │   ├── youtube/
 │   ├── x/
 │   ├── instagram/
 │   └── threads/
 └── src/
     ├── main.py          # Entrypoint & CLI dispatcher
-    ├── core/            # Console VT100, Config, i18n, FFmpeg GPU, Progress, File Manager
+    ├── core/            # Console, Config, Batch, i18n, FFmpeg GPU, Progress, File Manager
     ├── extractors/      # YouTube, Twitter/X, Instagram, Threads extractors
     └── ui/              # Interactive menu engine & specialized views
 ```
@@ -136,4 +151,4 @@ downloader/
 
 ## License
 
-This project is licensed under the MIT License. See `/home/runner/work/downloader/downloader/LICENSE.md` for details.
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for details.
