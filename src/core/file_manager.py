@@ -112,6 +112,7 @@ PLATFORM_META = {
             "photo": ("Photo", "📷"),
             "video": ("Video", "🎬"),
             "gallery": ("Gallery (Mixed Slides)", "🖼️"),
+            "posts": ("Posts (Text Threads)", "📝"),
         }
     },
 }

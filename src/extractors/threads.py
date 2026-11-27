@@ -75,6 +75,55 @@ class ThreadsExtractor(BaseExtractor):
             for item in node:
                 ThreadsExtractor._collect_posts(item, out)
 
+    @staticmethod
+    def _collect_self_thread(target_post: dict, all_posts: list[dict], author_name: str) -> list[dict]:
+        """Collects the author's continuous self-reply thread starting from target_post."""
+        root_code = target_post.get("code")
+        root_time = target_post.get("taken_at") or 0
+        by_code: dict[str, dict] = {}
+        for p in all_posts:
+            c = p.get("code")
+            if not c or c == root_code or c in by_code:
+                continue
+            p_user = (p.get("user") or {}).get("username")
+            tp = p.get("text_post_app_info") or {}
+            reply_to = (tp.get("reply_to_author") or {}).get("username")
+            p_time = p.get("taken_at") or 0
+            if p_user == author_name and reply_to == author_name and p_time >= root_time:
+                by_code[c] = p
+
+        continuations = sorted(by_code.values(), key=lambda x: x.get("taken_at") or 0)
+        return [target_post, *continuations]
+
+    @staticmethod
+    def _extract_post_media(post_obj: dict) -> list[dict]:
+        """Extracts normalized media dicts (without final index) from a single Threads post object."""
+        found: list[dict] = []
+        carousel = post_obj.get("carousel_media") or []
+        if carousel:
+            for itm in carousel:
+                v_ver = itm.get("video_versions") or []
+                v_url = v_ver[0].get("url") if v_ver else None
+                i_ver = itm.get("image_versions2", {}).get("candidates") or []
+                i_url = i_ver[0].get("url") if i_ver else None
+                m_type = "video" if v_url else "image"
+                m_url = v_url if v_url else i_url
+                if m_url:
+                    found.append({"type": m_type, "media_type": m_type, "url": m_url, "thumbnail": i_url})
+        elif post_obj.get("video_versions"):
+            v_url = post_obj["video_versions"][0].get("url")
+            if v_url:
+                found.append({"type": "video", "media_type": "video", "url": v_url})
+        elif post_obj.get("image_versions2", {}).get("candidates"):
+            i_url = post_obj["image_versions2"]["candidates"][0].get("url")
+            if i_url:
+                found.append({"type": "image", "media_type": "image", "url": i_url, "thumbnail": i_url})
+        elif post_obj.get("giphy_media_info"):
+            gif_url = post_obj["giphy_media_info"].get("images", {}).get("fixed_height", {}).get("url")
+            if gif_url:
+                found.append({"type": "image", "media_type": "image", "url": gif_url, "thumbnail": gif_url})
+        return found
+
     def fetch_metadata(self, url: str) -> MediaItem | None:
         m = self.THREADS_REGEX.search(url.strip())
         if not m:
@@ -120,79 +169,63 @@ class ThreadsExtractor(BaseExtractor):
                     title = caption.split("\n")[0][:60] if caption else f"Threads post by @{author_name}"
                     item_url = f"https://www.threads.net/@{author_name}/post/{post_id}"
 
-                    carousel = target_post.get("carousel_media") or []
-                    slide_items = []
+                    # Collect continuous self-reply thread chain (e.g. 1/11 -> 11/11)
+                    chain_posts = self._collect_self_thread(target_post, posts, author_name)
+                    if len(chain_posts) > 1:
+                        total_parts = len(chain_posts)
+                        formatted_parts = []
+                        for p_idx, cp in enumerate(chain_posts, 1):
+                            cp_text = ((cp.get("caption") or {}).get("text") or "").strip()
+                            if cp_text:
+                                formatted_parts.append(f"[{p_idx}/{total_parts}]\n{cp_text}")
+                        if formatted_parts:
+                            caption = "\n\n".join(formatted_parts)
+                        target_post["_thread_chain_count"] = total_parts
 
-                    if carousel:
-                        for idx, itm in enumerate(carousel, 1):
-                            v_ver = itm.get("video_versions") or []
-                            v_url = v_ver[0].get("url") if v_ver else None
-                            i_ver = itm.get("image_versions2", {}).get("candidates") or []
-                            i_url = i_ver[0].get("url") if i_ver else None
-                            m_type = "video" if v_url else "image"
-                            m_url = v_url if v_url else i_url
+                    all_media: list[dict] = []
+                    for cp in chain_posts:
+                        for m_itm in self._extract_post_media(cp):
+                            m_itm["index"] = len(all_media) + 1
+                            all_media.append(m_itm)
 
-                            slide_items.append({
-                                "index": idx,
-                                "type": m_type,
-                                "media_type": m_type,
-                                "url": m_url,
-                                "thumbnail": i_url
-                            })
-
+                    if len(all_media) > 1:
                         return MediaItem(
                             platform="threads",
                             url=item_url,
                             title=title,
                             author=f"@{author_name}",
                             media_type="gallery",
-                            thumbnail=slide_items[0].get("thumbnail") if slide_items else None,
+                            thumbnail=next((x.get("thumbnail") for x in all_media if x.get("thumbnail")), None),
                             caption=caption,
-                            items=slide_items,
+                            items=all_media,
                             raw_info=target_post
                         )
 
-                    elif target_post.get("video_versions"):
-                        v_url = target_post["video_versions"][0]["url"]
+                    elif len(all_media) == 1:
+                        single = all_media[0]
                         return MediaItem(
                             platform="threads",
                             url=item_url,
                             title=title,
                             author=f"@{author_name}",
-                            media_type="video",
+                            media_type=single["media_type"],
+                            thumbnail=single.get("thumbnail"),
                             caption=caption,
-                            items=[{"index": 1, "type": "video", "media_type": "video", "url": v_url}],
+                            items=all_media,
                             raw_info=target_post
                         )
 
-                    elif target_post.get("image_versions2", {}).get("candidates"):
-                        i_url = target_post["image_versions2"]["candidates"][0]["url"]
+                    elif caption:
                         return MediaItem(
                             platform="threads",
                             url=item_url,
                             title=title,
                             author=f"@{author_name}",
-                            media_type="image",
-                            thumbnail=i_url,
+                            media_type="text",
                             caption=caption,
-                            items=[{"index": 1, "type": "image", "media_type": "image", "url": i_url}],
+                            items=[],
                             raw_info=target_post
                         )
-
-                    elif target_post.get("giphy_media_info"):
-                        gif_url = target_post["giphy_media_info"].get("images", {}).get("fixed_height", {}).get("url")
-                        if gif_url:
-                            return MediaItem(
-                                platform="threads",
-                                url=item_url,
-                                title=title,
-                                author=f"@{author_name}",
-                                media_type="image",
-                                thumbnail=gif_url,
-                                caption=caption,
-                                items=[{"index": 1, "type": "image", "media_type": "image", "url": gif_url}],
-                                raw_info=target_post
-                            )
 
                 # 2. Fallback: Meta OpenGraph extraction
                 desc_match = re.search(r'<meta property="og:description" content="([^"]+)"', raw_html)
@@ -300,5 +333,9 @@ class ThreadsExtractor(BaseExtractor):
             if m_url and download_file_with_progress(m_url, dest):
                 downloaded_files.append(dest)
                 return True, downloaded_files
+
+        if item.media_type == "text" and item.caption:
+            get_download_path(options.get("output_dir"), platform="threads", media_type="posts", subfolder=link_folder)
+            return True, []
 
         return False, []

@@ -116,10 +116,11 @@ def run_platform_flow(extractor_cls, platform_title: str, platform_key: str, col
     safe_title = sanitize_terminal_text(item.title)
     safe_author = sanitize_terminal_text(item.author)
     caption_disp = (safe_title[:50] + "…") if len(safe_title) > 50 else safe_title
+    chain_count = item.raw_info.get("_thread_chain_count", 1) if isinstance(item.raw_info, dict) else 1
     info_header = [
         f"{t('author')}      : {BOLD_YELLOW}{safe_author}{NC}",
         f"{t('caption')}     : {BOLD}{caption_disp}{NC}",
-        f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else ""),
+        f"{t('media_type')}  : {BOLD_MAGENTA}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else "") + (f"  |  {BOLD_GREEN}Utas: {chain_count} parts{NC}" if chain_count > 1 else ""),
         f"{t('destination')} : {BOLD_BLUE}{out_dir}{NC}"
     ]
 
