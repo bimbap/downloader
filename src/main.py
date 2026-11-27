@@ -23,6 +23,7 @@ from core.console import (
     NC,
 )
 from core.config import ensure_dependencies, load_config, get_download_path
+from core.file_manager import save_caption_file
 from core.batch import parse_batch_input, validate_batch_urls, execute_batch_download
 from extractors import get_extractor_for_url, detect_platform
 from ui.views.main_menu import run_main_menu
@@ -39,6 +40,7 @@ def _build_cli_opts(args) -> dict:
         "filename_style": args.style,
         "is_playlist": args.playlist,
         "force_upscale": args.force_upscale,
+        "save_caption": args.save_caption,
         "output_dir": args.output,
     }
 
@@ -73,6 +75,12 @@ def run_cli_download(raw_url: str, args):
     print(f"  Output Dir: {DIM}{out_dir}{NC}\n")
 
     success, files = extractor.download(item, opts)
+    if success:
+        save_cap = args.save_caption if args.save_caption is not None else load_config().get("save_caption", True)
+        if save_cap:
+            cap_path = save_caption_file(item, files, fallback_dir=out_dir)
+            if cap_path:
+                print(f"  {BOLD_CYAN}📝 Caption saved:{NC} {cap_path.name}")
     if success and files:
         print(f"\n{BOLD_GREEN}✔ [SUCCESS]{NC} Downloaded {len(files)} file(s) successfully!")
         for f in files:
@@ -153,6 +161,8 @@ Examples:
     parser.add_argument("-p", "--playlist", action="store_true", help="Download entire playlist")
     parser.add_argument("-u", "--force-upscale", action="store_true", default=None, help="Force GPU Bicubic upscale")
     parser.add_argument("--no-force-upscale", dest="force_upscale", action="store_false", help="Disable upscaling")
+    parser.add_argument("--caption", dest="save_caption", action="store_true", default=None, help="Save post caption as caption.txt")
+    parser.add_argument("--no-caption", dest="save_caption", action="store_false", help="Do not save caption.txt")
     parser.add_argument("-o", "--output", help="Custom output directory")
 
     args = parser.parse_args()

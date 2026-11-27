@@ -17,6 +17,7 @@ class MediaItem:
     media_type: str = "video"        # 'video', 'audio', 'image', 'gallery', 'playlist'
     duration: float = 0.0            # Duration in seconds (for video/audio)
     thumbnail: str | None = None
+    caption: str = ""                # Full post caption or video description
     items: list[dict[str, Any]] = field(default_factory=list)  # Multi-items (gallery photos or playlist tracks)
     raw_info: dict[str, Any] = field(default_factory=dict)
 

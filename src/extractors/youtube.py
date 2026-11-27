@@ -150,6 +150,7 @@ class YouTubeExtractor(BaseExtractor):
                 real_title = info.get("title") or title
                 uploader = info.get("uploader") or author
                 duration = float(info.get("duration") or 0.0)
+                desc = (info.get("description") or "").strip()
 
                 items = []
                 if "entries" in info:
@@ -172,6 +173,7 @@ class YouTubeExtractor(BaseExtractor):
                     author=uploader,
                     media_type=media_type,
                     duration=duration,
+                    caption=desc,
                     items=items,
                     raw_info=info
                 )
@@ -202,7 +204,9 @@ class YouTubeExtractor(BaseExtractor):
         is_upscale = options.get("force_upscale") if "force_upscale" in options else cfg.get("force_upscale", False)
 
         media_cat = "audio" if (mode in ("audio", "mp3", "m4a", "opus", "wav", "flac", "best") or mode.startswith("audio")) else "video"
-        output_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type=media_cat)
+        vid_id = (item.raw_info.get("id") if isinstance(item.raw_info, dict) else None) or ""
+        link_folder = f"{item.title[:50]} [{vid_id}]" if vid_id else item.title[:60]
+        output_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type=media_cat, subfolder=link_folder)
         out_template = get_outtmpl(style, target_audio_fmt if mode in ("audio", "best") else mode, output_dir, platform="youtube")
 
         hook = create_ytdlp_progress_hook(item.title)

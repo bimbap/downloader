@@ -19,7 +19,7 @@ from core.console import (
     get_key,
     sanitize_terminal_text,
 )
-from core.file_manager import open_download_folder, open_file_in_player
+from core.file_manager import open_download_folder, open_file_in_player, save_caption_file
 from core.config import load_config, get_download_path
 from core.batch import parse_batch_input, validate_batch_urls, execute_batch_download
 from core.i18n import t
@@ -28,41 +28,79 @@ from extractors.youtube import YouTubeExtractor
 from ui.menu import select_menu_option
 
 
-def render_download_result(success: bool, downloaded_files: list[Path], output_dir: Path):
-    """Renders final result and interactive actions (Open folder, Play)."""
-    if success:
-        clear_screen()
-    print(f"\n{BOLD_CYAN}------------------------------------------------------------{NC}")
-    if success and downloaded_files:
-        print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('download_success')}")
-        print(f"  {t('destination')}: {BOLD_BLUE}{output_dir}{NC}")
-        for idx, f in enumerate(downloaded_files[:4], 1):
-            print(f"    {DIM}{idx}.{NC} {f.name}")
-        if len(downloaded_files) > 4:
-            print(f"    {DIM}... and {len(downloaded_files) - 4} more files{NC}")
-    elif success:
-        print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('download_success')}")
-        print(f"  {t('folder')}: {BOLD_BLUE}{output_dir}{NC}")
-    else:
-        print(f"  {BOLD_RED}✖ [{t('failed')}]{NC} {t('download_failed')}")
+def render_caption_viewer(item):
+    """Displays the full sanitized post caption/description in a clean screen."""
+    clear_screen()
+    safe_title = sanitize_terminal_text(getattr(item, "title", ""))
+    safe_author = sanitize_terminal_text(getattr(item, "author", ""))
+    raw_cap = (getattr(item, "caption", "") or "").strip()
+    safe_lines = [sanitize_terminal_text(ln) for ln in raw_cap.splitlines()]
 
+    print(f"{BOLD_CYAN}── {BOLD_YELLOW}{t('caption_viewer_title')}{BOLD_CYAN} ─────────────────────────────{NC}\n")
+    print(f"  {t('author')} : {BOLD_YELLOW}{safe_author}{NC}")
+    if safe_title:
+        print(f"  {t('title')}  : {BOLD}{safe_title}{NC}")
     print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
-    print(f"  {DIM}{t('return_hint')}{NC}")
+    for ln in safe_lines:
+        print(f"  {ln}" if ln else "")
     print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+    print(f"  {DIM}[Enter / q] {t('back_simple')}{NC}")
 
     while True:
         k = get_key()
         if k in ("ENTER", "Q", "ESC", "BACKSPACE"):
-            clear_screen()
             break
-        elif k == "O":
-            open_download_folder(output_dir)
+
+
+def render_download_result(success: bool, downloaded_files: list[Path], output_dir: Path, item=None):
+    """Renders final result and interactive actions (Open folder, Play, View Caption)."""
+    caption_path = None
+    has_caption = bool(item and (getattr(item, "caption", "") or "").strip())
+    if success and has_caption and load_config().get("save_caption", True):
+        caption_path = save_caption_file(item, downloaded_files, fallback_dir=output_dir)
+
+    while True:
+        if success:
             clear_screen()
-            break
-        elif k == "P" and downloaded_files:
-            open_file_in_player(downloaded_files[0])
-            clear_screen()
-            break
+        print(f"\n{BOLD_CYAN}------------------------------------------------------------{NC}")
+        if success and downloaded_files:
+            print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('download_success')}")
+            print(f"  {t('destination')}: {BOLD_BLUE}{output_dir}{NC}")
+            for idx, f in enumerate(downloaded_files[:4], 1):
+                print(f"    {DIM}{idx}.{NC} {sanitize_terminal_text(f.name)}")
+            if len(downloaded_files) > 4:
+                print(f"    {DIM}... and {len(downloaded_files) - 4} more files{NC}")
+            if caption_path:
+                print(f"    {BOLD_CYAN}📝 {t('caption_saved', filename=caption_path.name)}{NC}")
+        elif success:
+            print(f"  {BOLD_GREEN}✔ [{t('success')}]{NC} {t('download_success')}")
+            print(f"  {t('folder')}: {BOLD_BLUE}{output_dir}{NC}")
+            if caption_path:
+                print(f"    {BOLD_CYAN}📝 {t('caption_saved', filename=caption_path.name)}{NC}")
+        else:
+            print(f"  {BOLD_RED}✖ [{t('failed')}]{NC} {t('download_failed')}")
+
+        print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+        hint_key = "return_hint_caption" if has_caption else "return_hint"
+        print(f"  {DIM}{t(hint_key)}{NC}")
+        print(f"{BOLD_CYAN}------------------------------------------------------------{NC}")
+
+        while True:
+            k = get_key()
+            if k in ("ENTER", "Q", "ESC", "BACKSPACE"):
+                clear_screen()
+                return
+            elif k == "O":
+                open_download_folder(output_dir)
+                clear_screen()
+                return
+            elif k == "P" and downloaded_files:
+                open_file_in_player(downloaded_files[0])
+                clear_screen()
+                return
+            elif k == "C" and has_caption:
+                render_caption_viewer(item)
+                break
 
 
 def collect_multiline_urls() -> list[str]:
@@ -295,4 +333,4 @@ def run_smart_download(prefilled_url: str | None = None):
     success, files = extractor.download(item, options=download_opts)
 
     final_out = files[0].parent if files else target_out
-    render_download_result(success, files, final_out)
+    render_download_result(success, files, final_out, item=item)

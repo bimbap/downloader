@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
+from core.config import load_config
+from core.file_manager import save_caption_file
 from extractors import get_extractor_for_url
 
 
@@ -97,6 +99,11 @@ def execute_batch_download(
 
         ok, files = extractor.download(item, item_opts)
         if ok:
+            save_cap = item_opts.get("save_caption")
+            if save_cap is None:
+                save_cap = load_config().get("save_caption", True)
+            if save_cap:
+                save_caption_file(item, files)
             succeeded.append({"url": norm_url, "title": item.title, "files": files})
             all_files.extend(files)
         else:

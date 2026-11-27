@@ -26,6 +26,8 @@ DEFAULT_CONFIG = {
     "download_dir": "downloads",
     "organize_by_platform": True,         # downloads/youtube, downloads/x, etc.
     "organize_by_category": True,         # downloads/platform/photo, downloads/platform/video, etc.
+    "organize_by_link": True,             # downloads/platform/category/<post_folder>/
+    "save_caption": True,                 # True: save caption.txt alongside downloaded media
     "playlist_mode": "ask",               # ask, single, playlist
     "force_upscale": False,               # False: native stream, True: upscale via GPU/FFmpeg if native < target
 }
@@ -90,12 +92,22 @@ def save_config(config: dict):
         json.dump(config, f, indent=2)
 
 
+def sanitize_folder_name(name: str, max_len: int = 80) -> str:
+    """Sanitizes a string for safe use as a cross-platform directory name."""
+    cleaned = re.sub(r'[\x00-\x1f\x7f\\/*?:"<>|]', "", (name or "").strip())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+    if not cleaned or cleaned in (".", ".."):
+        return "post"
+    return cleaned[:max_len].strip(" .") or "post"
+
+
 def get_download_path(
     custom_dir: str | None = None,
     platform: str | None = None,
-    media_type: str | None = None
+    media_type: str | None = None,
+    subfolder: str | None = None
 ) -> Path:
-    """Resolve download path, optionally routed into platform and media category subfolders."""
+    """Resolve download path, optionally routed into platform, category, and per-link subfolders."""
     cfg = load_config()
     target_dir = custom_dir or cfg.get("download_dir", "downloads")
     p = Path(target_dir)
@@ -112,13 +124,18 @@ def get_download_path(
             m = media_type.lower()
             if m in ("audio", "mp3", "m4a", "opus", "wav", "flac", "ogg"):
                 category = "audio"
-            elif m in ("image", "photo", "gallery", "slide", "slides", "picture"):
+            elif m in ("image", "photo", "slide", "slides", "picture"):
                 category = "photo"
+            elif m == "gallery":
+                category = "gallery"
             elif m in ("video", "reel", "reels", "gif", "tv", "clip", "playlist"):
                 category = "video"
             else:
                 category = re.sub(r"[^a-z0-9_-]", "", m) or "other"
             p = p / category
+
+    if subfolder and cfg.get("organize_by_link", True):
+        p = p / sanitize_folder_name(subfolder)
 
     p.mkdir(parents=True, exist_ok=True)
     return p

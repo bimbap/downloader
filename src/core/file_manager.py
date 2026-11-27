@@ -84,6 +84,7 @@ PLATFORM_META = {
         "cats": {
             "photo": ("Photo (Feed, Carousel)", "📷"),
             "video": ("Video (Reels, Clips)", "🎬"),
+            "gallery": ("Gallery (Mixed Slides)", "🖼️"),
         }
     },
     "youtube": {
@@ -100,6 +101,7 @@ PLATFORM_META = {
         "cats": {
             "photo": ("Photo (Images)", "📷"),
             "video": ("Video (Clips, GIFs)", "🎬"),
+            "gallery": ("Gallery (Mixed Slides)", "🖼️"),
         }
     },
     "threads": {
@@ -108,6 +110,7 @@ PLATFORM_META = {
         "cats": {
             "photo": ("Photo", "📷"),
             "video": ("Video", "🎬"),
+            "gallery": ("Gallery (Mixed Slides)", "🖼️"),
         }
     },
 }
@@ -299,6 +302,36 @@ def clean_temp_files(root_dir: Path | None = None) -> tuple[int, int, list[dict]
                         pass
 
     return cleaned, freed, deleted_files
+
+
+def save_caption_file(item, downloaded_files: list[Path], fallback_dir: Path | None = None) -> Path | None:
+    """Saves post caption/description as caption.txt alongside downloaded media."""
+    caption_text = (getattr(item, "caption", "") or "").strip()
+    if not caption_text:
+        return None
+
+    target_dir = downloaded_files[0].parent if downloaded_files else fallback_dir
+    if not target_dir:
+        return None
+
+    target_dir = Path(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    caption_path = target_dir / "caption.txt"
+
+    content_lines = [
+        f"Platform : {getattr(item, 'platform', 'unknown').upper()}",
+        f"Author   : {getattr(item, 'author', 'Unknown')}",
+        f"Title    : {getattr(item, 'title', '')}",
+        f"URL      : {getattr(item, 'url', '')}",
+        "-" * 60,
+        caption_text,
+        "",
+    ]
+    try:
+        caption_path.write_text("\n".join(content_lines), encoding="utf-8")
+        return caption_path
+    except Exception:
+        return None
 
 
 def reset_config():

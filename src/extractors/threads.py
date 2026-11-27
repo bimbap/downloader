@@ -145,6 +145,7 @@ class ThreadsExtractor(BaseExtractor):
                             author=f"@{author_name}",
                             media_type="gallery",
                             thumbnail=slide_items[0].get("thumbnail") if slide_items else None,
+                            caption=caption,
                             items=slide_items,
                             raw_info=target_post
                         )
@@ -157,6 +158,7 @@ class ThreadsExtractor(BaseExtractor):
                             title=title,
                             author=f"@{author_name}",
                             media_type="video",
+                            caption=caption,
                             items=[{"index": 1, "type": "video", "media_type": "video", "url": v_url}],
                             raw_info=target_post
                         )
@@ -170,6 +172,7 @@ class ThreadsExtractor(BaseExtractor):
                             author=f"@{author_name}",
                             media_type="image",
                             thumbnail=i_url,
+                            caption=caption,
                             items=[{"index": 1, "type": "image", "media_type": "image", "url": i_url}],
                             raw_info=target_post
                         )
@@ -184,13 +187,15 @@ class ThreadsExtractor(BaseExtractor):
                                 author=f"@{author_name}",
                                 media_type="image",
                                 thumbnail=gif_url,
+                                caption=caption,
                                 items=[{"index": 1, "type": "image", "media_type": "image", "url": gif_url}],
                                 raw_info=target_post
                             )
 
                 # 2. Fallback: Meta OpenGraph extraction
                 desc_match = re.search(r'<meta property="og:description" content="([^"]+)"', raw_html)
-                title = html.unescape(desc_match.group(1)).strip().split("\n")[0][:60] if desc_match else f"Threads post by @{user}"
+                full_og_desc = html.unescape(desc_match.group(1)).strip() if desc_match else ""
+                title = full_og_desc.split("\n")[0][:60] if full_og_desc else f"Threads post by @{user}"
 
                 vid_match = re.search(r'<meta property="og:video" content="([^"]+)"', raw_html)
                 img_match = re.search(r'<meta property="og:image" content="([^"]+)"', raw_html)
@@ -203,6 +208,7 @@ class ThreadsExtractor(BaseExtractor):
                         title=title,
                         author=f"@{user}",
                         media_type="video",
+                        caption=full_og_desc,
                         items=[{"index": 1, "type": "video", "media_type": "video", "url": v_url}],
                     )
                 elif img_match:
@@ -214,6 +220,7 @@ class ThreadsExtractor(BaseExtractor):
                         author=f"@{user}",
                         media_type="image",
                         thumbnail=i_url,
+                        caption=full_og_desc,
                         items=[{"index": 1, "type": "image", "media_type": "image", "url": i_url}],
                     )
 
@@ -236,6 +243,7 @@ class ThreadsExtractor(BaseExtractor):
         downloaded_files = []
         author_clean = re.sub(r'[\\/*?:"<>|@]', "", item.author.replace(" ", "_")).strip() or user
         selected_indices = options.get("selected_indices")
+        link_folder = f"@{author_clean}_{post_id}"
 
         # Multi-item / slide download
         if item.items and len(item.items) > 1:
@@ -243,6 +251,13 @@ class ThreadsExtractor(BaseExtractor):
                 itm for itm in item.items
                 if (not selected_indices or itm.get("index") in selected_indices)
             ]
+            types_set = {
+                "video" if (itm.get("media_type") or itm.get("type", "image")) == "video" else "photo"
+                for itm in targets
+            }
+            bundle_cat = "gallery" if len(types_set) > 1 else (next(iter(types_set)) if types_set else "photo")
+            target_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=bundle_cat, subfolder=link_folder)
+
             for itm in targets:
                 idx = itm.get("index", 1)
                 m_url = itm.get("url")
@@ -251,10 +266,8 @@ class ThreadsExtractor(BaseExtractor):
 
                 m_type = itm.get("media_type") or itm.get("type", "image")
                 is_vid = m_type == "video"
-                category = "video" if is_vid else "photo"
                 ext = ".mp4" if is_vid else ".jpg"
 
-                target_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=category)
                 filename = f"@{author_clean}_{post_id}_slide_{idx}{ext}"
                 dest = target_dir / filename
 
@@ -275,7 +288,7 @@ class ThreadsExtractor(BaseExtractor):
             category = "video" if is_vid else "photo"
             ext = ".mp4" if is_vid else ".jpg"
 
-            target_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=category)
+            target_dir = get_download_path(options.get("output_dir"), platform="threads", media_type=category, subfolder=link_folder)
             clean_title = re.sub(r'[\x00-\x1f\x7f\\/*?:"<>|]', "", item.title[:35]).strip()
             filename = f"@{author_clean}_{post_id}_{clean_title}{ext}" if clean_title else f"@{author_clean}_{post_id}{ext}"
             dest = target_dir / filename

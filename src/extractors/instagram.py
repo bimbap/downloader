@@ -118,6 +118,7 @@ class InstagramExtractor(BaseExtractor):
                             author=author,
                             media_type=media_type,
                             thumbnail=slide_items[0].get("thumbnail") if slide_items else info.get("thumbnail"),
+                            caption=raw_desc,
                             items=slide_items,
                             raw_info=info
                         )
@@ -137,6 +138,7 @@ class InstagramExtractor(BaseExtractor):
                             media_type="video",
                             duration=float(info.get("duration") or 0.0),
                             thumbnail=thumbs[-1]["url"] if thumbs else info.get("thumbnail"),
+                            caption=raw_desc,
                             items=[],
                             raw_info=info
                         )
@@ -155,6 +157,7 @@ class InstagramExtractor(BaseExtractor):
                             author=author,
                             media_type="image",
                             thumbnail=thumbs[-1]["url"] if thumbs else info.get("thumbnail"),
+                            caption=raw_desc,
                             items=single_item,
                             raw_info=info
                         )
@@ -192,11 +195,12 @@ class InstagramExtractor(BaseExtractor):
 
         downloaded_files = []
         selected_indices = options.get("selected_indices")
+        link_folder = f"@{author_clean}_{code}"
 
         # 1. Standalone Video / Reel -> ALWAYS use yt-dlp with bundled FFmpeg merger for crystal-clear video + audio!
         is_carousel = item.items and len(item.items) > 1
         if yt_dlp and item.media_type == "video" and not is_carousel:
-            vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video")
+            vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video", subfolder=link_folder)
             hook = create_ytdlp_progress_hook(item.title)
             out_template = str(vid_dir / f"@{author_clean}_{code}.%(ext)s")
             ydl_opts = {
@@ -238,15 +242,20 @@ class InstagramExtractor(BaseExtractor):
                 if (not selected_indices or itm.get("index") in selected_indices)
             ]
             is_multi = len(item.items) > 1
+            types_set = {itm.get("media_type", "image") for itm in targets}
+            if len(types_set) > 1:
+                bundle_cat = "gallery"
+            elif "video" in types_set:
+                bundle_cat = "video"
+            else:
+                bundle_cat = "photo"
+            target_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type=bundle_cat, subfolder=link_folder)
 
             for target in targets:
                 idx = target.get("index", 1)
                 m_url = target.get("url")
                 m_type = target.get("media_type", "image")
-                category = "video" if m_type == "video" else "photo"
                 ext = ".mp4" if m_type == "video" else ".jpg"
-
-                target_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type=category)
 
                 if is_multi:
                     filename = f"@{author_clean}_{code}_slide_{idx}{ext}"
@@ -274,7 +283,7 @@ class InstagramExtractor(BaseExtractor):
                 v_match = re.search(r'<meta property="og:video" content="([^"]+)"', html)
                 if v_match:
                     v_url = v_match.group(1).replace("&amp;", "&")
-                    vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video")
+                    vid_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="video", subfolder=link_folder)
                     dest = vid_dir / f"@{author_clean}_{code}.mp4"
                     if download_file_with_progress(v_url, dest):
                         downloaded_files.append(dest)
@@ -283,7 +292,7 @@ class InstagramExtractor(BaseExtractor):
                 img_match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
                 if img_match:
                     img_url = img_match.group(1).replace("&amp;", "&")
-                    photo_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="photo")
+                    photo_dir = get_download_path(options.get("output_dir"), platform="instagram", media_type="photo", subfolder=link_folder)
                     dest = photo_dir / f"@{author_clean}_{code}.jpg"
                     if download_file_with_progress(img_url, dest):
                         downloaded_files.append(dest)

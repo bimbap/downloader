@@ -74,6 +74,9 @@ TRANSLATIONS = {
         "download_success": "Media downloaded & saved successfully!",
         "download_failed": "Could not download media. Please check URL and internet connection.",
         "return_hint": "[Enter] Return  |  [o] Open Folder  |  [p] Play/View Media",
+        "return_hint_caption": "[Enter] Return  |  [o] Open Folder  |  [p] Play/View Media  |  [c] View Caption",
+        "caption_saved": "Caption saved: {filename}",
+        "caption_viewer_title": "Post Caption / Description",
         "invalid_url": "Unsupported or invalid link format.",
         "invalid_url_hint": "Please provide a valid link from YouTube, X, Instagram, or Threads.",
 
@@ -186,6 +189,9 @@ TRANSLATIONS = {
         "download_success": "Media berhasil diunduh dan disimpan!",
         "download_failed": "Gagal mengunduh media. Periksa URL dan koneksi internet Anda.",
         "return_hint": "[Enter] Kembali  |  [o] Buka Folder  |  [p] Putar/Buka Media",
+        "return_hint_caption": "[Enter] Kembali  |  [o] Buka Folder  |  [p] Putar/Buka Media  |  [c] Lihat Caption",
+        "caption_saved": "Caption tersimpan: {filename}",
+        "caption_viewer_title": "Caption / Deskripsi Postingan",
         "invalid_url": "Format tautan tidak didukung atau tidak valid.",
         "invalid_url_hint": "Pastikan menggunakan link valid dari YouTube, X, Instagram, atau Threads.",
 

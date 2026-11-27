@@ -189,16 +189,20 @@ def handle_storage_settings():
         out_dir = cfg.get("download_dir", "downloads")
         org_platform = cfg.get("organize_by_platform", True)
         org_category = cfg.get("organize_by_category", True)
+        org_link = cfg.get("organize_by_link", True)
+        save_cap = cfg.get("save_caption", True)
 
         header = [
             f"Path     : {BOLD_CYAN}{out_dir}{NC}",
-            f"Platform : {BOLD_GREEN if org_platform else DIM}{'ON (youtube/, x/, etc.)' if org_platform else 'OFF'}{NC}  |  Format: {BOLD_YELLOW if org_category else DIM}{'ON (photo/, video/, audio/)' if org_category else 'OFF'}{NC}"
+            f"Platform : {BOLD_GREEN if org_platform else DIM}{'ON' if org_platform else 'OFF'}{NC}  |  Category: {BOLD_YELLOW if org_category else DIM}{'ON' if org_category else 'OFF'}{NC}  |  Per-Link Folder: {BOLD_GREEN if org_link else DIM}{'ON' if org_link else 'OFF'}{NC}  |  Caption (.txt): {BOLD_CYAN if save_cap else DIM}{'ON' if save_cap else 'OFF'}{NC}"
         ]
 
         options = [
             (f"{'Output Folder Path':<34} [{out_dir}]", "change_dir", True, False),
             (f"{'Organize by Platform':<34} [{'ON' if org_platform else 'OFF'}]", "toggle_org", True, False),
             (f"{'Organize by Media Category':<34} [{'ON' if org_category else 'OFF'}]", "toggle_cat", True, False),
+            (f"{'Per-Link Bundle Subfolder':<34} [{'ON' if org_link else 'OFF'}]", "toggle_link", True, False),
+            (f"{'Save Post Caption (.txt)':<34} [{'ON' if save_cap else 'OFF'}]", "toggle_caption", True, False),
             (t("back_simple"), "back", False, True)
         ]
 
@@ -226,6 +230,16 @@ def handle_storage_settings():
             cfg["organize_by_category"] = not cfg.get("organize_by_category", True)
             save_config(cfg)
             curr_idx = 2
+
+        elif choice == "toggle_link":
+            cfg["organize_by_link"] = not cfg.get("organize_by_link", True)
+            save_config(cfg)
+            curr_idx = 3
+
+        elif choice == "toggle_caption":
+            cfg["save_caption"] = not cfg.get("save_caption", True)
+            save_config(cfg)
+            curr_idx = 4
 
 
 def handle_language_settings():

@@ -95,6 +95,7 @@ class TwitterExtractor(BaseExtractor):
                     title=title,
                     author=f"@{screen_name} ({author})",
                     media_type=media_type,
+                    caption=text,
                     items=media_items,
                     raw_info=data
                 )
@@ -165,6 +166,7 @@ class TwitterExtractor(BaseExtractor):
         tweet_id = m.group(2) if m else "media"
 
         downloaded_files = []
+        link_folder = f"@{user}_{tweet_id}"
 
         # 1. Multi-item / slide download (carousel, multiple photos/videos)
         if item.items and len(item.items) > 1:
@@ -173,13 +175,19 @@ class TwitterExtractor(BaseExtractor):
                 itm for itm in item.items
                 if (not selected_indices or itm.get("index") in selected_indices)
             ]
+            types_set = {
+                "video" if (itm.get("media_type") or itm.get("type", "image")) in ("video", "gif") else "photo"
+                for itm in targets
+            }
+            bundle_cat = "gallery" if len(types_set) > 1 else (next(iter(types_set)) if types_set else "photo")
+            target_dir = get_download_path(options.get("output_dir"), platform="x", media_type=bundle_cat, subfolder=link_folder)
+
             for itm in targets:
                 m_url = itm.get("url")
                 if not m_url:
                     continue
                 m_type = itm.get("media_type") or itm.get("type", "image")
                 is_vid = m_type in ("video", "gif")
-                category = "video" if is_vid else "photo"
 
                 if is_vid:
                     ext = ".mp4"
@@ -192,7 +200,6 @@ class TwitterExtractor(BaseExtractor):
                     else:
                         ext = ".jpg"
 
-                target_dir = get_download_path(options.get("output_dir"), platform="x", media_type=category)
                 idx = itm.get("index", 1)
                 filename = f"@{user}_{tweet_id}_slide_{idx}{ext}"
                 dest = target_dir / filename
@@ -206,7 +213,7 @@ class TwitterExtractor(BaseExtractor):
                 return True, downloaded_files
 
         # If it's a video/gif: prefer yt-dlp for best quality
-        vid_dir = get_download_path(options.get("output_dir"), platform="x", media_type="video")
+        vid_dir = get_download_path(options.get("output_dir"), platform="x", media_type="video", subfolder=link_folder)
         if yt_dlp:
             hook = create_ytdlp_progress_hook(item.title)
             out_template = str(vid_dir / f"@{user}_%(id)s_%(title).50s.%(ext)s")
@@ -243,7 +250,7 @@ class TwitterExtractor(BaseExtractor):
                 if m_url:
                     is_vid = itm.get("type") in ("video", "gif")
                     ext = ".mp4" if is_vid else ".jpg"
-                    dest_dir = vid_dir if is_vid else get_download_path(options.get("output_dir"), platform="x", media_type="photo")
+                    dest_dir = vid_dir if is_vid else get_download_path(options.get("output_dir"), platform="x", media_type="photo", subfolder=link_folder)
                     dest = dest_dir / f"@{user}_{tweet_id}{ext}"
                     if download_file_with_progress(m_url, dest):
                         downloaded_files.append(dest)

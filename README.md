@@ -100,6 +100,7 @@ python src/main.py -f urls.txt
 | `--audio-format`| | `mp3`, `m4a`, `opus`, `wav`, `best` | Target audio format |
 | `--audio-bitrate`| `-b`| `320`, `256`, `192`, `128`, `96` | Audio bitrate (kbps) |
 | `--force-upscale`| `-u` | *(flag)* | Force GPU/Bicubic upscale |
+| `--caption` / `--no-caption` | | *(flag)* | Save post caption as `caption.txt` (default: ON) |
 | `--style` | `-s` | `basic`, `pretty`, `nerdy`, `classic` | Filename naming pattern |
 | `--playlist` | `-p` | *(flag)* | Download entire playlist |
 | `--output` | `-o` | `<path>` | Custom destination directory |
