@@ -93,6 +93,7 @@ PLATFORM_META = {
         "cats": {
             "video": ("Video (MP4, MKV, WebM)", "🎬"),
             "audio": ("Audio (MP3, M4A, Opus)", "🎵"),
+            "photo": ("Photo (Community Posts)", "📷"),
         }
     },
     "x": {
@@ -232,12 +233,37 @@ def open_download_folder(folder_path: Path | str | None = None):
         pass
 
 
+_PROTECTED_DIR_NAMES = {"downloads", "instagram", "youtube", "x", "twitter", "threads", "photo", "video", "audio", "gallery", "posts"}
+
+
+def _cleanup_empty_bundle_dir(folder: Path):
+    """Removes caption.txt and empty per-link bundle subfolder when no media files remain."""
+    try:
+        resolved = folder.resolve()
+        root_dl = get_download_path().resolve()
+        if resolved == root_dl or resolved.name.lower() in _PROTECTED_DIR_NAMES:
+            return
+        if not resolved.exists() or not resolved.is_dir():
+            return
+        if scan_downloaded_files(resolved):
+            return
+        cap = resolved / "caption.txt"
+        if cap.exists() and cap.is_file():
+            cap.unlink()
+        if not any(resolved.iterdir()):
+            resolved.rmdir()
+    except Exception:
+        pass
+
+
 def delete_file(filepath: Path | str) -> bool:
-    """Safely deletes a single media file."""
+    """Safely deletes a single media file and cleans up its bundle folder if empty."""
     p = Path(filepath)
     if p.exists():
         try:
+            parent = p.parent
             p.unlink()
+            _cleanup_empty_bundle_dir(parent)
             return True
         except Exception:
             return False

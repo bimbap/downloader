@@ -15,6 +15,8 @@ if str(SRC_DIR) not in sys.path:
 from core.console import (
     configure_windows_console,
     sanitize_terminal_text,
+    show_cursor,
+    set_quick_edit_mode,
     BOLD_CYAN,
     BOLD_YELLOW,
     BOLD_GREEN,
@@ -186,4 +188,10 @@ Examples:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        show_cursor()
+        set_quick_edit_mode(True)
+        print(f"\n  {BOLD_YELLOW}⚠ Cancelled by user (Ctrl+C).{NC}\n")
+        sys.exit(130)

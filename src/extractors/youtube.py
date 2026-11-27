@@ -18,7 +18,7 @@ from core.config import (
     get_cookie_opts,
 )
 from core.ffmpeg_engine import FFMPEG_EXE, FFmpegUpscalePP, FFmpegSquareCropThumbnailPP
-from core.progress import create_ytdlp_progress_hook, safe_urlopen
+from core.progress import create_ytdlp_progress_hook, download_file_with_progress, safe_urlopen
 
 try:
     import yt_dlp
@@ -41,7 +41,7 @@ class YouTubeExtractor(BaseExtractor):
     """Extractor for YouTube Videos, Shorts, Audio, and Playlists."""
 
     YOUTUBE_REGEX = re.compile(
-        r"^(https?://)?(www\.|m\.)?(youtube\.com/(watch\?.*v=|shorts/|embed/|playlist\?.*list=)|youtu\.be/)([a-zA-Z0-9_-]+)"
+        r"^(https?://)?(www\.|m\.)?(youtube\.com/(watch\?.*v=|shorts/|embed/|playlist\?.*list=|post/|[^/]+/(?:community|posts)\?.*lb=)|youtu\.be/)([a-zA-Z0-9_-]+)"
     )
 
     _SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -104,13 +104,107 @@ class YouTubeExtractor(BaseExtractor):
                     return False, "", "Missing or invalid playlist ID (?list= parameter)."
                 return True, f"https://www.youtube.com/playlist?list={list_id}", ""
 
-        return False, "", "Not a recognized YouTube video or playlist URL."
+            if path.startswith("/post/"):
+                post_id = path.split("/")[2] if len(path.split("/")) > 2 else ""
+                if not post_id or not self._SAFE_ID_RE.fullmatch(post_id):
+                    return False, "", "Invalid YouTube Community Post ID."
+                return True, f"https://www.youtube.com/post/{post_id}", ""
+
+            if path.endswith("/community") or path.endswith("/posts"):
+                lb_id = qs.get("lb", [""])[0]
+                if not lb_id or not self._SAFE_ID_RE.fullmatch(lb_id):
+                    return False, "", "Missing or invalid Community Post ID (?lb= parameter)."
+                return True, f"https://www.youtube.com/post/{lb_id}", ""
+
+        return False, "", "Not a recognized YouTube video, playlist, or post URL."
 
     def is_playlist_url(self, url: str) -> bool:
         return "list=" in url and not url.startswith("https://www.youtube.com/watch?v=")
 
+    @staticmethod
+    def _find_json_key(node: Any, target_key: str) -> Any:
+        if isinstance(node, dict):
+            if target_key in node:
+                return node[target_key]
+            for v in node.values():
+                res = YouTubeExtractor._find_json_key(v, target_key)
+                if res is not None:
+                    return res
+        elif isinstance(node, list):
+            for item in node:
+                res = YouTubeExtractor._find_json_key(item, target_key)
+                if res is not None:
+                    return res
+        return None
+
+    def _fetch_community_post(self, url: str) -> MediaItem | None:
+        """Extracts text, images, or attached video from a YouTube Community Post."""
+        post_id = url.rstrip("/").split("/")[-1]
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        try:
+            with safe_urlopen(url, headers=headers, timeout=10) as resp:
+                raw_html = resp.read().decode("utf-8", "ignore")
+            m = re.search(r"var ytInitialData\s*=\s*(\{.*?\});</script>", raw_html)
+            if not m:
+                return None
+            data = json.loads(m.group(1))
+            bpr = self._find_json_key(data, "backstagePostRenderer")
+            if not bpr or not isinstance(bpr, dict):
+                return None
+
+            author_runs = (bpr.get("authorText") or {}).get("runs") or []
+            author = author_runs[0].get("text", "YouTube Creator") if author_runs else "YouTube Creator"
+            content_runs = (bpr.get("contentText") or {}).get("runs") or []
+            caption = "".join(r.get("text", "") for r in content_runs).strip()
+            title = caption.split("\n")[0][:60] if caption else f"YouTube Post ({post_id})"
+
+            att = bpr.get("backstageAttachment") or {}
+            items = []
+            media_type = "text"
+            raw_info: dict[str, Any] = {"id": post_id, "is_community_post": True}
+
+            if "postMultiImageRenderer" in att:
+                imgs = att["postMultiImageRenderer"].get("images") or []
+                for idx, img_wrap in enumerate(imgs, 1):
+                    thumbs = ((img_wrap.get("backstageImageRenderer") or {}).get("image") or {}).get("thumbnails") or []
+                    if thumbs:
+                        items.append({"index": idx, "media_type": "image", "url": thumbs[-1]["url"]})
+                media_type = "gallery" if len(items) > 1 else ("image" if items else "text")
+            elif "backstageImageRenderer" in att:
+                thumbs = (att["backstageImageRenderer"].get("image") or {}).get("thumbnails") or []
+                if thumbs:
+                    items.append({"index": 1, "media_type": "image", "url": thumbs[-1]["url"]})
+                    media_type = "image"
+            elif "videoRenderer" in att:
+                vid_id = att["videoRenderer"].get("videoId")
+                if vid_id:
+                    media_type = "video"
+                    raw_info["attached_video_url"] = f"https://www.youtube.com/watch?v={vid_id}"
+                    vid_title_runs = ((att["videoRenderer"].get("title") or {}).get("runs") or [])
+                    if vid_title_runs:
+                        title = vid_title_runs[0].get("text", title)
+
+            return MediaItem(
+                platform="youtube",
+                url=url,
+                title=title,
+                author=author,
+                media_type=media_type,
+                caption=caption,
+                items=items,
+                raw_info=raw_info,
+            )
+        except Exception:
+            return None
+
     def fetch_metadata(self, url: str) -> MediaItem | None:
         """Fetches title and structure for YouTube URL."""
+        if "/post/" in url:
+            return self._fetch_community_post(url)
+
         is_pl = "list=" in url
 
         # Quick oEmbed title check
@@ -187,9 +281,40 @@ class YouTubeExtractor(BaseExtractor):
             )
 
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
-        """Downloads YouTube media based on options."""
+        """Downloads YouTube media (videos, audio, playlists, or Community Posts) based on options."""
+        is_post = isinstance(item.raw_info, dict) and item.raw_info.get("is_community_post")
+        if is_post and item.media_type in ("image", "gallery", "text"):
+            post_id = item.raw_info.get("id", "post")
+            link_folder = f"{item.author[:30]} [{post_id}]"
+            if item.media_type == "text" or not item.items:
+                post_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type="posts", subfolder=link_folder)
+                return True, []
+
+            selected_indices = options.get("selected_indices")
+            targets = [
+                itm for itm in item.items
+                if (not selected_indices or itm.get("index") in selected_indices)
+            ]
+            photo_dir = get_download_path(options.get("output_dir"), platform="youtube", media_type="photo", subfolder=link_folder)
+            downloaded = []
+            is_multi = len(item.items) > 1
+            for itm in targets:
+                m_url = itm.get("url")
+                if not m_url:
+                    continue
+                idx = itm.get("index", 1)
+                fname = f"post_{post_id}_slide_{idx}.jpg" if is_multi else f"post_{post_id}.jpg"
+                dest = photo_dir / fname
+                if is_multi:
+                    print(f"  Downloading Slide {idx}/{len(item.items)} (Image)...")
+                if download_file_with_progress(m_url, dest):
+                    downloaded.append(dest)
+            return len(downloaded) > 0, downloaded
+
         if not yt_dlp:
             return False, []
+
+        target_url = (item.raw_info.get("attached_video_url") if is_post else None) or item.url
 
         cfg = load_config()
         mode = options.get("mode", "video")  # 'video', 'audio', etc.
@@ -288,7 +413,7 @@ class YouTubeExtractor(BaseExtractor):
                         FFmpegUpscalePP(ydl, target_height=resolution, codec=target_codec),
                         when="post_process"
                     )
-                info = ydl.extract_info(item.url, download=True)
+                info = ydl.extract_info(target_url, download=True)
                 self._collect_downloaded_files(info, downloaded_files)
             return len(downloaded_files) > 0, downloaded_files
         except Exception:

@@ -48,7 +48,62 @@ class TwitterExtractor(BaseExtractor):
         user = m.group(1)
         tweet_id = m.group(2)
 
-        # 1. Query VxTwitter API for comprehensive metadata
+        # 1. Primary: Query FxTwitter API (supports multi-photo, video, GIF, and full text)
+        fx_url = f"https://api.fxtwitter.com/{user}/status/{tweet_id}"
+        try:
+            with safe_urlopen(fx_url, timeout=8) as resp:
+                fx_data = json.loads(resp.read().decode("utf-8"))
+                tweet = fx_data.get("tweet") or {}
+                if tweet:
+                    author_obj = tweet.get("author") or {}
+                    screen_name = author_obj.get("screen_name") or user
+                    author = author_obj.get("name") or screen_name
+                    text = (tweet.get("text") or "").strip()
+                    title = text.split("\n")[0][:60] if text else f"Tweet by @{screen_name}"
+
+                    all_media = (tweet.get("media") or {}).get("all") or []
+                    media_items = []
+                    media_type = "text"
+
+                    if all_media:
+                        has_video = any(m_obj.get("type") in ("video", "gif") for m_obj in all_media)
+                        has_image = any(m_obj.get("type") in ("photo", "image") for m_obj in all_media)
+
+                        if len(all_media) > 1:
+                            media_type = "gallery"
+                        elif has_video:
+                            media_type = "video"
+                        elif has_image:
+                            media_type = "image"
+
+                        for idx, m_obj in enumerate(all_media, 1):
+                            raw_t = m_obj.get("type", "photo")
+                            m_type = raw_t if raw_t in ("video", "gif") else "image"
+                            m_url = m_obj.get("url", "")
+                            if m_type == "image" and "pbs.twimg.com" in m_url and "name=" not in m_url and not m_url.endswith(":orig"):
+                                m_url = f"{m_url}?name=orig"
+                            media_items.append({
+                                "index": idx,
+                                "type": m_type,
+                                "media_type": m_type,
+                                "url": m_url,
+                                "thumbnail": m_obj.get("thumbnail_url"),
+                            })
+
+                    return MediaItem(
+                        platform="twitter",
+                        url=url,
+                        title=title,
+                        author=f"@{screen_name} ({author})",
+                        media_type=media_type,
+                        caption=text,
+                        items=media_items,
+                        raw_info=tweet
+                    )
+        except Exception:
+            pass
+
+        # 2. Secondary: Query VxTwitter API for comprehensive metadata
         api_url = f"https://api.vxtwitter.com/{user}/status/{tweet_id}"
         try:
             with safe_urlopen(api_url, timeout=6) as resp:
@@ -163,6 +218,8 @@ class TwitterExtractor(BaseExtractor):
     def download(self, item: MediaItem, options: dict[str, Any]) -> tuple[bool, list[Path]]:
         m = self.TWITTER_REGEX.search(item.url)
         user = m.group(1) if m else "twitter"
+        if user == "i" and item.author.startswith("@"):
+            user = item.author.split()[0].lstrip("@") or user
         tweet_id = m.group(2) if m else "media"
 
         downloaded_files = []
@@ -212,9 +269,9 @@ class TwitterExtractor(BaseExtractor):
             if downloaded_files:
                 return True, downloaded_files
 
-        # If it's a video/gif: prefer yt-dlp for best quality
+        # 2. If it's a video/gif: prefer yt-dlp for best quality (skip yt-dlp for image-only tweets)
         vid_dir = get_download_path(options.get("output_dir"), platform="x", media_type="video", subfolder=link_folder)
-        if yt_dlp:
+        if yt_dlp and item.media_type != "image":
             hook = create_ytdlp_progress_hook(item.title)
             out_template = str(vid_dir / f"@{user}_%(id)s_%(title).50s.%(ext)s")
             ydl_opts = {

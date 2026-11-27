@@ -42,6 +42,47 @@ def run_youtube_download_flow(item: MediaItem):
     cfg = load_config()
     safe_title = sanitize_terminal_text(item.title)
     safe_author = sanitize_terminal_text(item.author)
+
+    # Community Post with images or text-only (no video) -> streamlined confirmation
+    if item.media_type in ("image", "gallery", "text"):
+        out_dir = get_download_path(platform="youtube", media_type="photo" if item.items else "posts")
+        header = [
+            f"Target : {BOLD_YELLOW}{safe_title[:50]}{NC}",
+            f"Author : {DIM}{safe_author}{NC}  |  Type: {BOLD_CYAN}{item.media_type.upper()}{NC}" + (f" ({len(item.items)} files)" if item.items else "")
+        ]
+        dl_opts: dict = {}
+        if len(item.items) > 1:
+            from ui.views.social_view import prompt_slide_selection
+            opts_menu = [
+                (t("download_all_slides", count=len(item.items)), "all", True, False),
+                (t("select_specific_slides"), "select", False, False),
+                (t("cancel"), "cancel", False, True),
+            ]
+            ch = select_menu_option(f"YouTube Post – {t('ready_to_download')}", opts_menu, header_info=header)
+            if ch in ("cancel", None):
+                clear_screen()
+                return
+            if ch == "select":
+                dl_opts["selected_indices"] = prompt_slide_selection(len(item.items))
+            else:
+                dl_opts["selected_indices"] = list(range(1, len(item.items) + 1))
+        else:
+            opts_menu = [
+                (t("download_media"), "download", True, False),
+                (t("cancel"), "cancel", False, True),
+            ]
+            ch = select_menu_option(f"YouTube Post – {t('ready_to_download')}", opts_menu, header_info=header)
+            if ch != "download":
+                clear_screen()
+                return
+
+        clear_screen()
+        print(f"\n  {BOLD_CYAN}{t('downloading_media')}{NC}\n")
+        ok, files = YouTubeExtractor().download(item, dl_opts)
+        target_out = files[0].parent if files else out_dir
+        render_download_result(ok, files, target_out, item=item)
+        return
+
     is_playlist = (item.media_type == "playlist")
 
     # If it's a playlist URL, check user playlist mode

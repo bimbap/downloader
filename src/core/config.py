@@ -26,8 +26,8 @@ DEFAULT_CONFIG = {
     "download_dir": "downloads",
     "organize_by_platform": True,         # downloads/youtube, downloads/x, etc.
     "organize_by_category": True,         # downloads/platform/photo, downloads/platform/video, etc.
-    "organize_by_link": True,             # downloads/platform/category/<post_folder>/
-    "save_caption": True,                 # True: save caption.txt alongside downloaded media
+    "organize_by_link": True,            # False: flat per category; True: per-link subfolder
+    "save_caption": True,                 # False: no caption.txt clutter; True: save caption.txt
     "playlist_mode": "ask",               # ask, single, playlist
     "force_upscale": False,               # False: native stream, True: upscale via GPU/FFmpeg if native < target
 }

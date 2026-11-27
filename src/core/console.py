@@ -137,19 +137,21 @@ def get_key() -> str:
     if os.name == "nt":
         import msvcrt
         ch = msvcrt.getch()
+        if ch == b"\x03":
+            raise KeyboardInterrupt
         if ch in (b"\x00", b"\xe0"):
             ch2 = msvcrt.getch()
             if ch2 == b"H": return "UP"
             if ch2 == b"P": return "DOWN"
             if ch2 == b"K": return "LEFT"
             if ch2 == b"M": return "RIGHT"
+            return "UNKNOWN"
         if ch in (b"\r", b"\n"): return "ENTER"
         if ch == b" ": return "SPACE"
         if ch in (b"\x08", b"\x7f"): return "BACKSPACE"
-        if ch in (b"q", b"Q"): return "Q"
-        if ch in (b"o", b"O"): return "O"
-        if ch in (b"s", b"S"): return "S"
         if ch == b"\x1b": return "ESC"
+        if b"0" <= ch <= b"9" or b"a" <= ch.lower() <= b"z":
+            return ch.decode("ascii").upper()
         return "UNKNOWN"
     else:
         import termios
@@ -159,6 +161,8 @@ def get_key() -> str:
         try:
             tty.setraw(sys.stdin.fileno())
             ch = sys.stdin.read(1)
+            if ch == "\x03":
+                raise KeyboardInterrupt
             if ch == "\x1b":
                 ch2 = sys.stdin.read(1)
                 if ch2 == "[":
@@ -171,9 +175,8 @@ def get_key() -> str:
             if ch in ("\r", "\n"): return "ENTER"
             if ch == " ": return "SPACE"
             if ch in ("\x7f", "\x08"): return "BACKSPACE"
-            if ch in ("q", "Q"): return "Q"
-            if ch in ("o", "O"): return "O"
-            if ch in ("s", "S"): return "S"
+            if ch.isalnum() and ch.isascii():
+                return ch.upper()
             return "UNKNOWN"
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
